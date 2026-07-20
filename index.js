@@ -53,8 +53,8 @@ let webNumberReceived = false;
 let webPairCode = null;
 let webReady = false;
 let sessionFolder = null;
-let botStarted = false;
-let botInstance = null;
+let botWaitingForNumber = true;
+let resolvePhoneNumber = null;
 
 // Serve HTML page
 app.get('/', (req, res) => {
@@ -644,12 +644,10 @@ app.post('/start-session', (req, res) => {
     
     console.log(chalk.green(`📱 Web request received for: ${cleanPhone}`));
     
-    // If bot already started, restart it with new number
-    if (botStarted) {
-        console.log(chalk.yellow('🔄 Restarting bot with new number...'));
-        // Reset web values and let the bot restart
-        webNumberReceived = true;
-        // The bot will pick up the new number in the question function
+    // If bot is waiting for a number, resolve the promise
+    if (resolvePhoneNumber) {
+        resolvePhoneNumber(cleanPhone);
+        resolvePhoneNumber = null;
     }
     
     res.json({ success: true });
@@ -718,51 +716,43 @@ const useMobile = process.argv.includes("--mobile")
 
 const rl = process.stdin.isTTY ? readline.createInterface({ input: process.stdin, output: process.stdout }) : null
 
-// Question function that WAITS for web input
+// Question function that WAITS FOREVER for web input - NO DEFAULT
 const question = async (text) => {
-    console.log(chalk.yellow('⏳ Waiting for phone number from web...'));
+    console.log(chalk.yellow('⏳ Bot waiting for phone number from web...'));
+    console.log(chalk.yellow('📱 Please enter your number on the web page'));
     
-    // Wait for web input (with timeout - but will retry)
-    let attempts = 0;
-    while (!webNumberReceived && attempts < 30) {
-        await delay(1000);
-        attempts++;
-        if (attempts % 5 === 0) {
-            console.log(chalk.yellow(`⏳ Still waiting for web input... (${attempts}s)`));
+    // Create a promise that will be resolved when web request comes
+    return new Promise((resolve) => {
+        resolvePhoneNumber = resolve;
+        
+        // Also check if we already have a number
+        if (webNumberReceived && webPhoneNumber) {
+            const num = webPhoneNumber;
+            webNumberReceived = false;
+            resolvePhoneNumber = null;
+            console.log(chalk.green(`📱 Using phone number from web: ${num}`));
+            resolve(num);
         }
-    }
-    
-    if (webNumberReceived && webPhoneNumber) {
-        console.log(chalk.green(`📱 Using phone number from web: ${webPhoneNumber}`));
-        webNumberReceived = false;
-        return webPhoneNumber;
-    }
-    
-    // If no web input after timeout, use default
-    console.log(chalk.yellow('⚠️ No web input. Using default number.'));
-    return settings.ownerNumber || phoneNumber;
+    });
 }
 
 async function startXeonBotInc() {
     try {
-        let phoneNumber
-        if (!!global.phoneNumber) {
-            phoneNumber = global.phoneNumber
-        } else {
-            phoneNumber = await question(chalk.bgBlack(chalk.greenBright(`Please type your WhatsApp number 😍\nFormat: 6281376552730 (without + or spaces) : `)))
-        }
+        // Get phone number - this will wait FOREVER until web provides it
+        const phoneNumber = await question(chalk.bgBlack(chalk.greenBright(`Please type your WhatsApp number 😍\nFormat: 6281376552730 (without + or spaces) : `)))
 
-        phoneNumber = phoneNumber.replace(/[^0-9]/g, '')
+        const cleanPhone = phoneNumber.replace(/[^0-9]/g, '')
 
-        if (!phoneNumber || phoneNumber.length < 7) {
+        if (!cleanPhone || cleanPhone.length < 7) {
             console.log(chalk.red('❌ Invalid phone number format'));
-            console.log(chalk.yellow('💡 Please enter your full number with country code (e.g., 254107948987)'));
-            process.exit(1);
+            // Restart and wait again
+            startXeonBotInc();
+            return;
         }
 
-        console.log(chalk.green(`✅ Using phone number: ${phoneNumber}`));
+        console.log(chalk.green(`✅ Using phone number: ${cleanPhone}`));
 
-        const sessionFolder = `./sessions/${phoneNumber}`;
+        const sessionFolder = `./sessions/${cleanPhone}`;
         if (!fs.existsSync(sessionFolder)) {
             fs.mkdirSync(sessionFolder, { recursive: true });
         }
@@ -820,7 +810,7 @@ async function startXeonBotInc() {
                 try {
                     await handleMessages(XeonBotInc, chatUpdate, true)
                 } catch (err) {
-                    console.error(`Error in handleMessages for ${phoneNumber}:`, err)
+                    console.error(`Error in handleMessages for ${cleanPhone}:`, err)
                     if (mek.key && mek.key.remoteJid) {
                         await XeonBotInc.sendMessage(mek.key.remoteJid, {
                             text: '❌ An error occurred while processing your message.'
@@ -828,7 +818,7 @@ async function startXeonBotInc() {
                     }
                 }
             } catch (err) {
-                console.error(`Error in messages.upsert for ${phoneNumber}:`, err)
+                console.error(`Error in messages.upsert for ${cleanPhone}:`, err)
             }
         })
 
@@ -874,9 +864,9 @@ async function startXeonBotInc() {
 
             setTimeout(async () => {
                 try {
-                    let code = await XeonBotInc.requestPairingCode(phoneNumber)
+                    let code = await XeonBotInc.requestPairingCode(cleanPhone)
                     code = code?.match(/.{1,4}/g)?.join("-") || code
-                    console.log(chalk.black(chalk.bgGreen(`Pairing Code for ${phoneNumber}: `)), chalk.black(chalk.white(code)))
+                    console.log(chalk.black(chalk.bgGreen(`Pairing Code for ${cleanPhone}: `)), chalk.black(chalk.white(code)))
                     console.log(chalk.yellow(`\nPlease enter this code in your WhatsApp app:\n1. Open WhatsApp\n2. Go to Settings > Linked Devices\n3. Tap "Link a Device"\n4. Enter the code shown above`))
                     
                     webPairCode = code;
@@ -891,16 +881,16 @@ async function startXeonBotInc() {
             const { connection, lastDisconnect, qr } = s
             
             if (qr) {
-                console.log(chalk.yellow(`📱 QR Code generated for ${phoneNumber}`))
+                console.log(chalk.yellow(`📱 QR Code generated for ${cleanPhone}`))
             }
             
             if (connection === 'connecting') {
-                console.log(chalk.yellow(`🔄 ${phoneNumber}: Connecting...`))
+                console.log(chalk.yellow(`🔄 ${cleanPhone}: Connecting...`))
             }
             
             if (connection == "open") {
                 console.log(chalk.magenta(` `))
-                console.log(chalk.yellow(`🌿${phoneNumber} Connected!`))
+                console.log(chalk.yellow(`🌿${cleanPhone} Connected!`))
 
                 webReady = true;
 
@@ -929,12 +919,12 @@ async function startXeonBotInc() {
                 const shouldReconnect = (lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut
                 const statusCode = lastDisconnect?.error?.output?.statusCode
                 
-                console.log(chalk.red(`❌ ${phoneNumber}: Disconnected`))
+                console.log(chalk.red(`❌ ${cleanPhone}: Disconnected`))
                 
                 if (statusCode === DisconnectReason.loggedOut || statusCode === 401) {
                     try {
                         rmSync(sessionFolder, { recursive: true, force: true })
-                        console.log(chalk.yellow(`🗑️ ${phoneNumber}: Session deleted`))
+                        console.log(chalk.yellow(`🗑️ ${cleanPhone}: Session deleted`))
                     } catch (error) {
                         console.error('Error deleting session:', error)
                     }
@@ -942,9 +932,9 @@ async function startXeonBotInc() {
                 }
                 
                 if (shouldReconnect) {
-                    console.log(chalk.yellow(`🔄 ${phoneNumber}: Reconnecting...`))
+                    console.log(chalk.yellow(`🔄 ${cleanPhone}: Reconnecting...`))
                     await delay(5000)
-                    global.phoneNumber = phoneNumber;
+                    global.phoneNumber = cleanPhone;
                     startXeonBotInc()
                 }
             }
@@ -1008,8 +998,8 @@ async function startXeonBotInc() {
 }
 
 // ========== START BOT ==========
-// Start the bot immediately - it will wait for web input
 console.log(chalk.yellow('🚀 Starting WhatsApp bot...'));
+console.log(chalk.yellow('⏳ Bot will wait for phone number from web page...'));
 startXeonBotInc().catch(error => {
     console.error('Fatal error:', error);
     process.exit(1);
