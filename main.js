@@ -112,6 +112,7 @@ const textmakerCommand = require('./commands/textmaker');
 const { handleAntideleteCommand, handleMessageRevocation, storeMessage } = require('./commands/antidelete');
 const clearTmpCommand = require('./commands/cleartmp');
 const setProfilePicture = require('./commands/setpp');
+const sendCommand = require('./commands/send');
 const { setGroupDescription, setGroupName, setGroupPhoto } = require('./commands/groupmanage');
 const instagramCommand = require('./commands/instagram');
 const facebookCommand = require('./commands/facebook');
@@ -955,6 +956,13 @@ case userMessage.startsWith('.chain'):
             case userMessage.startsWith('.leaves'):
                 await textmakerCommand(sock, chatId, message, userMessage, 'leaves');
                 break;
+
+        
+    
+    case userMessage.startsWith('.send '):
+        const args = userMessage.slice(6).trim().split(' '); // Remove '.send ' and split
+        await sendCommand(sock, chatId, message, args);
+        break;
             case userMessage.startsWith('.1917'):
                 await textmakerCommand(sock, chatId, message, userMessage, '1917');
                 break;
