@@ -47,20 +47,53 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Store for web requests
-let webPhoneNumber = null;
-let webNumberReceived = false;
-let webPairCode = null;
-let webReady = false;
-let sessionFolder = null;
-let botStarted = false;
-let botInstance = null;
+// Store for web requests - KEYED BY SESSION ID (each device gets its own)
+const userSessions = new Map(); // sessionId -> { phone, pairCode, ready, botStarted, codeTimestamp }
 
-// Serve HTML page
+// Generate unique session ID
+function generateSessionId() {
+    return Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+}
+
+// Clean expired sessions every minute
+setInterval(() => {
+    const now = Date.now();
+    for (const [sessionId, data] of userSessions) {
+        // If code exists and is older than 10 minutes (600000 ms)
+        if (data.pairCode && data.codeTimestamp) {
+            if (now - data.codeTimestamp > 600000) { // 10 minutes
+                console.log(chalk.yellow(`⏰ Code expired for session: ${sessionId.substring(0, 8)}...`));
+                data.pairCode = null;
+                data.codeTimestamp = null;
+                data.ready = false;
+            }
+        }
+        // Clean up old sessions (30 minutes inactive)
+        if (data.timestamp && now - data.timestamp > 1800000) {
+            console.log(chalk.yellow(`🗑️ Cleaning up old session: ${sessionId.substring(0, 8)}...`));
+            userSessions.delete(sessionId);
+        }
+    }
+}, 60000); // Check every minute
+
+// Serve HTML page with unique session ID
 app.get('/', (req, res) => {
-    console.log(chalk.green('✅ Web page loaded!'));
-res.send(`
-<!DOCTYPE html>
+    // Generate unique session ID for this browser/device
+    const sessionId = generateSessionId();
+    console.log(chalk.green(`✅ New device connected - Session: ${sessionId.substring(0, 8)}...`));
+    
+    // Create session entry for this device
+    userSessions.set(sessionId, {
+        phone: null,
+        pairCode: null,
+        ready: false,
+        botStarted: false,
+        codeTimestamp: null,
+        timestamp: Date.now()
+    });
+    
+    // Send HTML with session ID embedded - each device gets its own unique ID
+    res.send(`<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -357,6 +390,11 @@ res.send(`
         .code-display .code:hover { background: rgba(37, 211, 102, 0.1); }
         .code-display .copy-hint { color: #5A6A74; font-size: 12px; margin-top: 8px; }
         .code-display .copy-hint i { margin-right: 4px; }
+        .code-display .expiry {
+            color: #8696A0;
+            font-size: 11px;
+            margin-top: 6px;
+        }
         .connected-badge {
             display: none;
             align-items: center;
@@ -383,6 +421,14 @@ res.send(`
         .footer a { color: #25D366; text-decoration: none; transition: color 0.2s; }
         .footer a:hover { color: #34B7F1; }
         .footer .heart { color: #E74C3C; }
+        .device-id {
+            font-size: 10px;
+            color: #3B4A54;
+            text-align: center;
+            margin-top: 12px;
+            font-family: monospace;
+            letter-spacing: 0.5px;
+        }
         @media (max-width: 480px) {
             .container { padding: 24px 16px; border-radius: 16px; }
             .input-group { flex-direction: column; align-items: stretch; }
@@ -469,6 +515,7 @@ res.send(`
             <div class="code-label"><i class="fas fa-key"></i> Pairing Code</div>
             <div class="code" id="pairCode" onclick="copyCode()">------</div>
             <div class="copy-hint"><i class="fas fa-copy"></i> Click code to copy</div>
+            <div class="expiry" id="expiryText">⏱ Code expires in 10 minutes</div>
         </div>
         <div id="connectedBadge" class="connected-badge">
             <i class="fas fa-check-circle"></i>
@@ -477,9 +524,13 @@ res.send(`
         <div class="footer">
             <span>Powered with <span class="heart">♥</span> by <a href="#">CypherNodeMD</a></span>
         </div>
+        <div class="device-id">🔑 Device: ${sessionId.substring(0, 12)}...</div>
     </div>
     <script>
+        // Each device gets its own unique session ID
+        const sessionId = '${sessionId}';
         let pollInterval = null;
+        let expiryTimer = null;
         
         function setLoading(loading) {
             const btn = document.getElementById('startBtn');
@@ -506,7 +557,7 @@ res.send(`
         function copyCode() {
             const codeEl = document.getElementById('pairCode');
             const code = codeEl.textContent;
-            if (code && code !== '------' && code !== 'Loading...') {
+            if (code && code !== '------' && code !== 'Loading...' && code !== 'Expired') {
                 navigator.clipboard.writeText(code).then(() => {
                     showStatus('Code copied to clipboard!', 'success');
                 }).catch(() => {
@@ -518,6 +569,24 @@ res.send(`
                     showStatus('Code copied!', 'success');
                 });
             }
+        }
+        
+        function startExpiryTimer() {
+            let minutes = 10;
+            const expiryEl = document.getElementById('expiryText');
+            if (expiryTimer) clearInterval(expiryTimer);
+            expiryTimer = setInterval(() => {
+                minutes--;
+                if (minutes <= 0) {
+                    clearInterval(expiryTimer);
+                    expiryEl.textContent = '⏱ Code expired';
+                    document.getElementById('pairCode').textContent = 'Expired';
+                    document.getElementById('pairCode').style.color = '#E74C3C';
+                    showStatus('Code has expired. Please request a new one.', 'error');
+                } else {
+                    expiryEl.textContent = '⏱ Code expires in ' + minutes + ' minute' + (minutes > 1 ? 's' : '');
+                }
+            }, 60000);
         }
         
         async function startSession() {
@@ -540,7 +609,10 @@ res.send(`
                 const res = await fetch('/start-session', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ phoneNumber: cleanPhone })
+                    body: JSON.stringify({ 
+                        phoneNumber: cleanPhone,
+                        sessionId: sessionId 
+                    })
                 });
                 const data = await res.json();
                 
@@ -553,6 +625,10 @@ res.send(`
                 showStatus('Waiting for pairing code...', 'info');
                 document.getElementById('codeDisplay').classList.add('active');
                 document.getElementById('pairCode').textContent = 'Loading...';
+                document.getElementById('pairCode').style.color = '#25D366';
+                
+                // Start expiry timer
+                startExpiryTimer();
                 
                 if (pollInterval) clearInterval(pollInterval);
                 pollInterval = setInterval(pollStatus, 2000);
@@ -566,12 +642,13 @@ res.send(`
         
         async function pollStatus() {
             try {
-                const res = await fetch('/session-status');
+                const res = await fetch('/session-status/' + sessionId);
                 if (!res.ok) throw new Error('Status check failed');
                 const data = await res.json();
                 
                 if (data.pairCode) {
                     document.getElementById('pairCode').textContent = data.pairCode;
+                    document.getElementById('pairCode').style.color = '#25D366';
                     showStatus('Code received! Follow the steps to link your device.', 'success');
                     setLoading(false);
                 }
@@ -584,6 +661,10 @@ res.send(`
                         clearInterval(pollInterval);
                         pollInterval = null;
                     }
+                    if (expiryTimer) {
+                        clearInterval(expiryTimer);
+                        expiryTimer = null;
+                    }
                     setLoading(false);
                 }
             } catch (e) {
@@ -593,12 +674,13 @@ res.send(`
         
         async function checkExisting() {
             try {
-                const res = await fetch('/session-status');
+                const res = await fetch('/session-status/' + sessionId);
                 if (res.ok) {
                     const data = await res.json();
                     if (data.pairCode) {
                         document.getElementById('codeDisplay').classList.add('active');
                         document.getElementById('pairCode').textContent = data.pairCode;
+                        startExpiryTimer();
                         if (pollInterval) clearInterval(pollInterval);
                         pollInterval = setInterval(pollStatus, 2000);
                     }
@@ -608,6 +690,10 @@ res.send(`
                         if (pollInterval) {
                             clearInterval(pollInterval);
                             pollInterval = null;
+                        }
+                        if (expiryTimer) {
+                            clearInterval(expiryTimer);
+                            expiryTimer = null;
                         }
                     }
                 }
@@ -622,68 +708,97 @@ res.send(`
         });
     </script>
 </body>
-</html>
-    `);
+</html>`);
 });
 
 // ========== API ROUTES ==========
 
 app.post('/start-session', (req, res) => {
-    const { phoneNumber } = req.body;
+    const { phoneNumber, sessionId } = req.body;
     if (!phoneNumber) {
         return res.status(400).json({ error: 'Phone number required' });
     }
+    if (!sessionId) {
+        return res.status(400).json({ error: 'Session ID required' });
+    }
 
     const cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
+
+    // Check if this session exists
+    if (!userSessions.has(sessionId)) {
+        // Create new session if it doesn't exist
+        userSessions.set(sessionId, {
+            phone: null,
+            pairCode: null,
+            ready: false,
+            botStarted: false,
+            codeTimestamp: null,
+            timestamp: Date.now()
+        });
+    }
+
+    const session = userSessions.get(sessionId);
+    session.phone = cleanPhone;
+    session.pairCode = null;
+    session.ready = false;
+    session.codeTimestamp = null;
     
-    webPhoneNumber = cleanPhone;
-    webNumberReceived = true;
-    webPairCode = null;
-    webReady = false;
-    sessionFolder = `./sessions/${cleanPhone}`;
+    console.log(chalk.green(`📱 Session ${sessionId.substring(0, 8)}... requested number: ${cleanPhone}`));
     
-    console.log(chalk.green(`📱 Web request received for: ${cleanPhone}`));
-    
-    // Start the bot ONLY when someone enters a number
-    if (!botStarted) {
-        botStarted = true;
-        console.log(chalk.yellow('🚀 Starting bot for number: ' + cleanPhone));
-        // Start bot in background
-        startXeonBotInc().catch(error => {
+    // Start the bot for this specific session
+    if (!session.botStarted) {
+        session.botStarted = true;
+        console.log(chalk.yellow(`🚀 Starting bot for session: ${sessionId.substring(0, 8)}...`));
+        // Start bot for this session
+        startXeonBotInc(sessionId).catch(error => {
             console.error('Fatal error:', error);
-            botStarted = false;
+            session.botStarted = false;
         });
     }
     
     res.json({ success: true });
 });
 
-app.get('/session-status', (req, res) => {
+app.get('/session-status/:sessionId', (req, res) => {
+    const { sessionId } = req.params;
+    if (!userSessions.has(sessionId)) {
+        return res.status(404).json({ error: 'Session not found' });
+    }
+    const session = userSessions.get(sessionId);
+    // Check if code expired
+    if (session.pairCode && session.codeTimestamp) {
+        if (Date.now() - session.codeTimestamp > 600000) { // 10 minutes
+            session.pairCode = null;
+            session.codeTimestamp = null;
+            session.ready = false;
+        }
+    }
     res.json({
-        pairCode: webPairCode,
-        ready: webReady
+        pairCode: session.pairCode || null,
+        ready: session.ready || false
     });
 });
 
 app.post('/delete-session', (req, res) => {
-    if (sessionFolder && fs.existsSync(sessionFolder)) {
-        try {
-            rmSync(sessionFolder, { recursive: true, force: true });
-        } catch (e) {}
+    const { sessionId } = req.body;
+    if (sessionId && userSessions.has(sessionId)) {
+        const session = userSessions.get(sessionId);
+        if (session.sessionFolder && fs.existsSync(session.sessionFolder)) {
+            try {
+                rmSync(session.sessionFolder, { recursive: true, force: true });
+            } catch (e) {}
+        }
+        userSessions.delete(sessionId);
+        console.log(chalk.green(`🗑️ Session deleted: ${sessionId.substring(0, 8)}...`));
     }
-    webPhoneNumber = null;
-    webNumberReceived = false;
-    webPairCode = null;
-    webReady = false;
-    sessionFolder = null;
-    console.log(chalk.green('🗑️ Session deleted'));
     res.json({ success: true });
 });
 
 // ========== START SERVER ==========
 app.listen(PORT, '0.0.0.0', () => {
     console.log(chalk.green(`🌐 Web interface: http://0.0.0.0:${PORT}`));
-    console.log(chalk.yellow('📱 Enter your phone number on the web page'));
+    console.log(chalk.yellow('📱 Each device gets its own unique session'));
+    console.log(chalk.yellow('⏱ Codes expire after 10 minutes'));
 });
 
 // ========== END WEB SERVER ==========
@@ -721,13 +836,22 @@ const useMobile = process.argv.includes("--mobile")
 
 const rl = process.stdin.isTTY ? readline.createInterface({ input: process.stdin, output: process.stdout }) : null
 
-// Question function - gets number from web
-const question = async (text) => {
-    console.log(chalk.yellow('⏳ Bot waiting for phone number from web...'));
+// Question function - gets number from web for specific session
+const question = async (text, sessionId) => {
+    console.log(chalk.yellow(`⏳ Bot waiting for phone number from web... (Session: ${sessionId.substring(0, 8)}...)`));
     
-    // Wait for web number
+    // Wait for web number for this session
     let attempts = 0;
-    while (!webNumberReceived && attempts < 300) { // Wait up to 5 minutes
+    while (attempts < 300) { // Wait up to 5 minutes
+        if (userSessions.has(sessionId)) {
+            const session = userSessions.get(sessionId);
+            if (session.phone) {
+                console.log(chalk.green(`📱 Using phone number from web: ${session.phone}`));
+                const phone = session.phone;
+                session.phone = null; // Clear so we don't reuse
+                return phone;
+            }
+        }
         await delay(1000);
         attempts++;
         if (attempts % 10 === 0) {
@@ -735,26 +859,25 @@ const question = async (text) => {
         }
     }
     
-    if (webNumberReceived && webPhoneNumber) {
-        console.log(chalk.green(`📱 Using phone number from web: ${webPhoneNumber}`));
-        return webPhoneNumber;
-    }
-    
     // If no number, restart the bot to wait again
     console.log(chalk.yellow('⏳ No number received. Restarting wait...'));
-    botStarted = false;
+    if (userSessions.has(sessionId)) {
+        userSessions.get(sessionId).botStarted = false;
+    }
     return null;
 }
 
-async function startXeonBotInc() {
+async function startXeonBotInc(sessionId) {
     try {
-        // Get phone number from web
-        let phoneNumber = await question('');
+        // Get phone number from web for this session
+        let phoneNumber = await question('', sessionId);
 
         if (!phoneNumber) {
             // If no number, restart the process
-            botStarted = false;
-            startXeonBotInc();
+            if (userSessions.has(sessionId)) {
+                userSessions.get(sessionId).botStarted = false;
+            }
+            startXeonBotInc(sessionId);
             return;
         }
 
@@ -762,8 +885,10 @@ async function startXeonBotInc() {
 
         if (!cleanPhone || cleanPhone.length < 7) {
             console.log(chalk.red('❌ Invalid phone number format'));
-            botStarted = false;
-            startXeonBotInc();
+            if (userSessions.has(sessionId)) {
+                userSessions.get(sessionId).botStarted = false;
+            }
+            startXeonBotInc(sessionId);
             return;
         }
 
@@ -772,6 +897,11 @@ async function startXeonBotInc() {
         const sessionFolder = `./sessions/${cleanPhone}`;
         if (!fs.existsSync(sessionFolder)) {
             fs.mkdirSync(sessionFolder, { recursive: true });
+        }
+
+        // Store session folder in the session data
+        if (userSessions.has(sessionId)) {
+            userSessions.get(sessionId).sessionFolder = sessionFolder;
         }
 
         let { version, isLatest } = await fetchLatestBaileysVersion()
@@ -886,7 +1016,13 @@ async function startXeonBotInc() {
                     console.log(chalk.black(chalk.bgGreen(`Pairing Code for ${cleanPhone}: `)), chalk.black(chalk.white(code)))
                     console.log(chalk.yellow(`\nPlease enter this code in your WhatsApp app:\n1. Open WhatsApp\n2. Go to Settings > Linked Devices\n3. Tap "Link a Device"\n4. Enter the code shown above`))
                     
-                    webPairCode = code;
+                    // Send code to the specific session only
+                    if (userSessions.has(sessionId)) {
+                        const session = userSessions.get(sessionId);
+                        session.pairCode = code;
+                        session.codeTimestamp = Date.now();
+                        console.log(chalk.green(`📤 Sent pairing code to session: ${sessionId.substring(0, 8)}...`));
+                    }
                 } catch (error) {
                     console.error('Error requesting pairing code:', error)
                 }
@@ -909,7 +1045,9 @@ async function startXeonBotInc() {
                 console.log(chalk.magenta(` `))
                 console.log(chalk.yellow(`🌿${cleanPhone} Connected!`))
 
-                webReady = true;
+                if (userSessions.has(sessionId)) {
+                    userSessions.get(sessionId).ready = true;
+                }
 
                 try {
                     const botNumber = XeonBotInc.user.id.split(':')[0] + '@s.whatsapp.net';
@@ -945,14 +1083,16 @@ async function startXeonBotInc() {
                     } catch (error) {
                         console.error('Error deleting session:', error)
                     }
-                    webReady = false;
+                    if (userSessions.has(sessionId)) {
+                        userSessions.get(sessionId).ready = false;
+                    }
                 }
                 
                 if (shouldReconnect) {
                     console.log(chalk.yellow(`🔄 ${cleanPhone}: Reconnecting...`))
                     await delay(5000)
                     global.phoneNumber = cleanPhone;
-                    startXeonBotInc()
+                    startXeonBotInc(sessionId)
                 }
             }
         })
@@ -1010,17 +1150,20 @@ async function startXeonBotInc() {
     } catch (error) {
         console.error('Error in startXeonBotInc:', error)
         await delay(5000)
-        botStarted = false;
-        startXeonBotInc()
+        if (userSessions.has(sessionId)) {
+            userSessions.get(sessionId).botStarted = false;
+        }
+        startXeonBotInc(sessionId)
     }
 }
 
 // ========== DO NOT AUTO-START BOT ==========
-console.log(chalk.yellow('🚀 Bot is ready and waiting for web request...'));
-console.log(chalk.yellow('📱 Visit the website to start pairing'));
+console.log(chalk.yellow('🚀 Bot is ready and waiting for web requests...'));
+console.log(chalk.yellow('📱 Each device gets its own unique session'));
+console.log(chalk.yellow('⏱ Codes expire after 10 minutes'));
 console.log(chalk.green(`🌐 URL: http://localhost:${PORT}`));
 
-// Bot will start when someone visits the website and enters a number
+// Bot starts when someone visits the website and enters a number
 
 process.on('uncaughtException', (err) => {
     console.error('Uncaught Exception:', err)
