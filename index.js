@@ -53,6 +53,8 @@ let webNumberReceived = false;
 let webPairCode = null;
 let webReady = false;
 let sessionFolder = null;
+let botStarted = false;
+let botInstance = null;
 
 // Serve HTML page
 app.get('/', (req, res) => {
@@ -532,7 +534,7 @@ res.send(`
             }
             
             setLoading(true);
-            showStatus('Requesting pairing code...', 'info');
+            showStatus('Starting session for ' + cleanPhone + '...', 'info');
             
             try {
                 const res = await fetch('/start-session', {
@@ -642,6 +644,14 @@ app.post('/start-session', (req, res) => {
     
     console.log(chalk.green(`📱 Web request received for: ${cleanPhone}`));
     
+    // If bot already started, restart it with new number
+    if (botStarted) {
+        console.log(chalk.yellow('🔄 Restarting bot with new number...'));
+        // Reset web values and let the bot restart
+        webNumberReceived = true;
+        // The bot will pick up the new number in the question function
+    }
+    
     res.json({ success: true });
 });
 
@@ -708,19 +718,28 @@ const useMobile = process.argv.includes("--mobile")
 
 const rl = process.stdin.isTTY ? readline.createInterface({ input: process.stdin, output: process.stdout }) : null
 
-// Question function that uses web input
+// Question function that WAITS for web input
 const question = async (text) => {
     console.log(chalk.yellow('⏳ Waiting for phone number from web...'));
     
-    // Check if web number received
+    // Wait for web input (with timeout - but will retry)
+    let attempts = 0;
+    while (!webNumberReceived && attempts < 30) {
+        await delay(1000);
+        attempts++;
+        if (attempts % 5 === 0) {
+            console.log(chalk.yellow(`⏳ Still waiting for web input... (${attempts}s)`));
+        }
+    }
+    
     if (webNumberReceived && webPhoneNumber) {
         console.log(chalk.green(`📱 Using phone number from web: ${webPhoneNumber}`));
         webNumberReceived = false;
         return webPhoneNumber;
     }
     
-    // If no web input, use default owner number
-    console.log(chalk.yellow('📱 No web input. Using default owner number.'));
+    // If no web input after timeout, use default
+    console.log(chalk.yellow('⚠️ No web input. Using default number.'));
     return settings.ownerNumber || phoneNumber;
 }
 
@@ -988,15 +1007,13 @@ async function startXeonBotInc() {
     }
 }
 
-// ========== START BOT AFTER WEB SERVER ==========
-// Wait 3 seconds for web server to be ready, then start bot
-setTimeout(() => {
-    console.log(chalk.yellow('🚀 Starting WhatsApp bot in background...'));
-    startXeonBotInc().catch(error => {
-        console.error('Fatal error:', error);
-        process.exit(1);
-    });
-}, 3000);
+// ========== START BOT ==========
+// Start the bot immediately - it will wait for web input
+console.log(chalk.yellow('🚀 Starting WhatsApp bot...'));
+startXeonBotInc().catch(error => {
+    console.error('Fatal error:', error);
+    process.exit(1);
+});
 
 process.on('uncaughtException', (err) => {
     console.error('Uncaught Exception:', err)
