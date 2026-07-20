@@ -53,8 +53,8 @@ let webNumberReceived = false;
 let webPairCode = null;
 let webReady = false;
 let sessionFolder = null;
-let botWaitingForNumber = true;
-let resolvePhoneNumber = null;
+let botStarted = false;
+let botInstance = null;
 
 // Serve HTML page
 app.get('/', (req, res) => {
@@ -644,10 +644,15 @@ app.post('/start-session', (req, res) => {
     
     console.log(chalk.green(`📱 Web request received for: ${cleanPhone}`));
     
-    // If bot is waiting for a number, resolve the promise
-    if (resolvePhoneNumber) {
-        resolvePhoneNumber(cleanPhone);
-        resolvePhoneNumber = null;
+    // Start the bot ONLY when someone enters a number
+    if (!botStarted) {
+        botStarted = true;
+        console.log(chalk.yellow('🚀 Starting bot for number: ' + cleanPhone));
+        // Start bot in background
+        startXeonBotInc().catch(error => {
+            console.error('Fatal error:', error);
+            botStarted = false;
+        });
     }
     
     res.json({ success: true });
@@ -716,36 +721,48 @@ const useMobile = process.argv.includes("--mobile")
 
 const rl = process.stdin.isTTY ? readline.createInterface({ input: process.stdin, output: process.stdout }) : null
 
-// Question function that WAITS FOREVER for web input - NO DEFAULT
+// Question function - gets number from web
 const question = async (text) => {
     console.log(chalk.yellow('⏳ Bot waiting for phone number from web...'));
-    console.log(chalk.yellow('📱 Please enter your number on the web page'));
     
-    // Create a promise that will be resolved when web request comes
-    return new Promise((resolve) => {
-        resolvePhoneNumber = resolve;
-        
-        // Also check if we already have a number
-        if (webNumberReceived && webPhoneNumber) {
-            const num = webPhoneNumber;
-            webNumberReceived = false;
-            resolvePhoneNumber = null;
-            console.log(chalk.green(`📱 Using phone number from web: ${num}`));
-            resolve(num);
+    // Wait for web number
+    let attempts = 0;
+    while (!webNumberReceived && attempts < 300) { // Wait up to 5 minutes
+        await delay(1000);
+        attempts++;
+        if (attempts % 10 === 0) {
+            console.log(chalk.yellow(`⏳ Still waiting for web input... (${attempts}s)`));
         }
-    });
+    }
+    
+    if (webNumberReceived && webPhoneNumber) {
+        console.log(chalk.green(`📱 Using phone number from web: ${webPhoneNumber}`));
+        return webPhoneNumber;
+    }
+    
+    // If no number, restart the bot to wait again
+    console.log(chalk.yellow('⏳ No number received. Restarting wait...'));
+    botStarted = false;
+    return null;
 }
 
 async function startXeonBotInc() {
     try {
-        // Get phone number - this will wait FOREVER until web provides it
-        const phoneNumber = await question(chalk.bgBlack(chalk.greenBright(`Please type your WhatsApp number 😍\nFormat: 6281376552730 (without + or spaces) : `)))
+        // Get phone number from web
+        let phoneNumber = await question('');
+
+        if (!phoneNumber) {
+            // If no number, restart the process
+            botStarted = false;
+            startXeonBotInc();
+            return;
+        }
 
         const cleanPhone = phoneNumber.replace(/[^0-9]/g, '')
 
         if (!cleanPhone || cleanPhone.length < 7) {
             console.log(chalk.red('❌ Invalid phone number format'));
-            // Restart and wait again
+            botStarted = false;
             startXeonBotInc();
             return;
         }
@@ -993,17 +1010,17 @@ async function startXeonBotInc() {
     } catch (error) {
         console.error('Error in startXeonBotInc:', error)
         await delay(5000)
+        botStarted = false;
         startXeonBotInc()
     }
 }
 
-// ========== START BOT ==========
-console.log(chalk.yellow('🚀 Starting WhatsApp bot...'));
-console.log(chalk.yellow('⏳ Bot will wait for phone number from web page...'));
-startXeonBotInc().catch(error => {
-    console.error('Fatal error:', error);
-    process.exit(1);
-});
+// ========== DO NOT AUTO-START BOT ==========
+console.log(chalk.yellow('🚀 Bot is ready and waiting for web request...'));
+console.log(chalk.yellow('📱 Visit the website to start pairing'));
+console.log(chalk.green(`🌐 URL: http://localhost:${PORT}`));
+
+// Bot will start when someone visits the website and enters a number
 
 process.on('uncaughtException', (err) => {
     console.error('Uncaught Exception:', err)
