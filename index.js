@@ -54,8 +54,18 @@ let webPairCode = null;
 let webReady = false;
 let sessionFolder = null;
 
+// Health check for Render
+app.get('/health', (req, res) => {
+    res.status(200).json({ 
+        status: 'OK', 
+        message: 'Bot is running',
+        timestamp: new Date().toISOString()
+    });
+});
+
 // Serve HTML page - Professional WhatsApp-style
 app.get('/', (req, res) => {
+    console.log(chalk.green('✅ Web page requested!'));
 res.send(`
 <!DOCTYPE html>
 <html lang="en">
@@ -83,7 +93,6 @@ res.send(`
             position: relative;
         }
         
-        /* Animated Background */
         .bg-animation {
             position: fixed;
             top: 0;
@@ -141,18 +150,11 @@ res.send(`
         }
         
         @keyframes floatOrb {
-            0%, 100% {
-                transform: translate(0, 0) scale(1);
-            }
-            33% {
-                transform: translate(50px, -50px) scale(1.1);
-            }
-            66% {
-                transform: translate(-30px, 30px) scale(0.9);
-            }
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(50px, -50px) scale(1.1); }
+            66% { transform: translate(-30px, 30px) scale(0.9); }
         }
         
-        /* Floating particles */
         .particles {
             position: fixed;
             top: 0;
@@ -184,23 +186,12 @@ res.send(`
         .particle:nth-child(10) { left: 95%; animation-delay: -14s; width: 4px; height: 4px; }
         
         @keyframes floatParticle {
-            0% {
-                transform: translateY(100vh) scale(0);
-                opacity: 0;
-            }
-            10% {
-                opacity: 1;
-            }
-            90% {
-                opacity: 1;
-            }
-            100% {
-                transform: translateY(-10vh) scale(1);
-                opacity: 0;
-            }
+            0% { transform: translateY(100vh) scale(0); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-10vh) scale(1); opacity: 0; }
         }
         
-        /* Container - Glassmorphism */
         .container {
             position: relative;
             z-index: 1;
@@ -211,22 +202,14 @@ res.send(`
             max-width: 480px;
             width: 100%;
             padding: 40px 32px;
-            box-shadow: 
-                0 8px 32px rgba(0,0,0,0.5),
-                inset 0 1px 0 rgba(255,255,255,0.05);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
             border: 1px solid rgba(255,255,255,0.05);
             transition: transform 0.3s ease;
         }
         
-        .container:hover {
-            transform: translateY(-2px);
-        }
+        .container:hover { transform: translateY(-2px); }
         
-        /* Header */
-        .header {
-            text-align: center;
-            margin-bottom: 32px;
-        }
+        .header { text-align: center; margin-bottom: 32px; }
         
         .header .logo {
             width: 72px;
@@ -255,18 +238,11 @@ res.send(`
         }
         
         @keyframes pulseGlow {
-            0%, 100% {
-                box-shadow: 0 0 40px rgba(37, 211, 102, 0.3);
-            }
-            50% {
-                box-shadow: 0 0 60px rgba(37, 211, 102, 0.5);
-            }
+            0%, 100% { box-shadow: 0 0 40px rgba(37, 211, 102, 0.3); }
+            50% { box-shadow: 0 0 60px rgba(37, 211, 102, 0.5); }
         }
         
-        .header .logo i {
-            font-size: 34px;
-            color: white;
-        }
+        .header .logo i { font-size: 34px; color: white; }
         
         .header .bot-badge {
             display: inline-flex;
@@ -284,9 +260,7 @@ res.send(`
             margin-bottom: 12px;
         }
         
-        .header .bot-badge i {
-            font-size: 10px;
-        }
+        .header .bot-badge i { font-size: 10px; }
         
         .header h1 {
             color: #E9EDEF;
@@ -302,13 +276,8 @@ res.send(`
             background-clip: text;
         }
         
-        .header p {
-            color: #8696A0;
-            font-size: 14px;
-            margin-top: 4px;
-        }
+        .header p { color: #8696A0; font-size: 14px; margin-top: 4px; }
         
-        /* Steps */
         .steps-container {
             background: rgba(11, 20, 26, 0.5);
             border-radius: 12px;
@@ -325,13 +294,8 @@ res.send(`
             transition: background 0.2s;
         }
         
-        .step:last-child {
-            border-bottom: none;
-        }
-        
-        .step:hover {
-            background: rgba(255,255,255,0.02);
-        }
+        .step:last-child { border-bottom: none; }
+        .step:hover { background: rgba(255,255,255,0.02); }
         
         .step-icon {
             width: 36px;
@@ -342,43 +306,21 @@ res.send(`
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
-            margin-top: 0px;
             border: 1px solid rgba(37, 211, 102, 0.1);
         }
         
-        .step-icon i {
-            font-size: 15px;
-            color: #25D366;
-        }
+        .step-icon i { font-size: 15px; color: #25D366; }
         
-        .step-content {
-            flex: 1;
-        }
-        
-        .step-content .title {
-            color: #E9EDEF;
-            font-size: 14px;
-            font-weight: 500;
-            margin-bottom: 2px;
-        }
-        
-        .step-content .desc {
-            color: #8696A0;
-            font-size: 13px;
-            line-height: 1.4;
-        }
-        
-        .step-content .highlight {
-            color: #25D366;
-            font-weight: 500;
-        }
+        .step-content { flex: 1; }
+        .step-content .title { color: #E9EDEF; font-size: 14px; font-weight: 500; margin-bottom: 2px; }
+        .step-content .desc { color: #8696A0; font-size: 13px; line-height: 1.4; }
+        .step-content .highlight { color: #25D366; font-weight: 500; }
         
         .divider {
             border-top: 1px solid rgba(42, 57, 66, 0.5);
             margin: 20px 0 24px;
         }
         
-        /* Input Group */
         .input-group {
             margin-top: 4px;
             display: flex;
@@ -412,9 +354,7 @@ res.send(`
             background: rgba(42, 57, 66, 0.8);
         }
         
-        .input-group input::placeholder {
-            color: #5A6A74;
-        }
+        .input-group input::placeholder { color: #5A6A74; }
         
         .input-group button {
             padding: 14px 28px;
@@ -455,19 +395,11 @@ res.send(`
             animation: spin 0.8s linear infinite;
         }
         
-        .input-group button.loading .spinner {
-            display: inline-block;
-        }
+        .input-group button.loading .spinner { display: inline-block; }
+        .input-group button.loading .btn-text { display: none; }
         
-        .input-group button.loading .btn-text {
-            display: none;
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
         
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        /* Status Message */
         .status-message {
             margin-top: 16px;
             padding: 14px 18px;
@@ -478,19 +410,11 @@ res.send(`
         }
         
         @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         
-        .status-message.show {
-            display: block;
-        }
+        .status-message.show { display: block; }
         .status-message.success {
             background: rgba(11, 59, 30, 0.8);
             color: #25D366;
@@ -507,7 +431,6 @@ res.send(`
             border: 1px solid rgba(96, 165, 250, 0.2);
         }
         
-        /* Code Display */
         .code-display {
             margin-top: 20px;
             padding: 20px;
@@ -519,9 +442,7 @@ res.send(`
             animation: slideDown 0.4s ease;
         }
         
-        .code-display.active {
-            display: block;
-        }
+        .code-display.active { display: block; }
         
         .code-display .code-label {
             color: #8696A0;
@@ -546,21 +467,10 @@ res.send(`
             background: rgba(0,0,0,0.2);
         }
         
-        .code-display .code:hover {
-            background: rgba(37, 211, 102, 0.1);
-        }
+        .code-display .code:hover { background: rgba(37, 211, 102, 0.1); }
+        .code-display .copy-hint { color: #5A6A74; font-size: 12px; margin-top: 8px; }
+        .code-display .copy-hint i { margin-right: 4px; }
         
-        .code-display .copy-hint {
-            color: #5A6A74;
-            font-size: 12px;
-            margin-top: 8px;
-        }
-        
-        .code-display .copy-hint i {
-            margin-right: 4px;
-        }
-        
-        /* Connected Badge */
         .connected-badge {
             display: none;
             align-items: center;
@@ -577,11 +487,8 @@ res.send(`
             animation: slideDown 0.4s ease;
         }
         
-        .connected-badge i {
-            font-size: 16px;
-        }
+        .connected-badge i { font-size: 16px; }
         
-        /* Footer */
         .footer {
             text-align: center;
             margin-top: 24px;
@@ -590,75 +497,29 @@ res.send(`
             letter-spacing: 0.3px;
         }
         
-        .footer a {
-            color: #25D366;
-            text-decoration: none;
-            transition: color 0.2s;
-        }
+        .footer a { color: #25D366; text-decoration: none; transition: color 0.2s; }
+        .footer a:hover { color: #34B7F1; }
+        .footer .heart { color: #E74C3C; }
         
-        .footer a:hover {
-            color: #34B7F1;
-        }
-        
-        .footer .heart {
-            color: #E74C3C;
-        }
-        
-        /* Mobile Responsive */
         @media (max-width: 480px) {
-            .container {
-                padding: 24px 16px;
-                border-radius: 16px;
-            }
-            .input-group {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            .input-group .country-code {
-                display: none;
-            }
-            .input-group button {
-                justify-content: center;
-                padding: 14px;
-            }
-            .header .logo {
-                width: 60px;
-                height: 60px;
-            }
-            .header .logo i {
-                font-size: 28px;
-            }
-            .header h1 {
-                font-size: 20px;
-            }
-            .step {
-                padding: 12px 12px;
-            }
-            .code-display .code {
-                font-size: 28px;
-                letter-spacing: 2px;
-                padding: 10px 16px;
-            }
+            .container { padding: 24px 16px; border-radius: 16px; }
+            .input-group { flex-direction: column; align-items: stretch; }
+            .input-group .country-code { display: none; }
+            .input-group button { justify-content: center; padding: 14px; }
+            .header .logo { width: 60px; height: 60px; }
+            .header .logo i { font-size: 28px; }
+            .header h1 { font-size: 20px; }
+            .step { padding: 12px 12px; }
+            .code-display .code { font-size: 28px; letter-spacing: 2px; padding: 10px 16px; }
         }
         
-        /* Scrollbar */
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: rgba(31, 44, 51, 0.3);
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #25D366;
-            border-radius: 10px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #1DA851;
-        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(31, 44, 51, 0.3); }
+        ::-webkit-scrollbar-thumb { background: #25D366; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #1DA851; }
     </style>
 </head>
 <body>
-    <!-- Animated Background -->
     <div class="bg-animation">
         <div class="orb"></div>
         <div class="orb"></div>
@@ -666,7 +527,6 @@ res.send(`
         <div class="orb"></div>
     </div>
     
-    <!-- Particles -->
     <div class="particles">
         <div class="particle"></div>
         <div class="particle"></div>
@@ -680,9 +540,7 @@ res.send(`
         <div class="particle"></div>
     </div>
     
-    <!-- Main Container -->
     <div class="container">
-        <!-- Header -->
         <div class="header">
             <div class="logo">
                 <i class="fas fa-robot"></i>
@@ -696,7 +554,6 @@ res.send(`
             <p>Connect your phone to the bot</p>
         </div>
         
-        <!-- Steps -->
         <div class="steps-container">
             <div class="step">
                 <div class="step-icon">
@@ -731,7 +588,6 @@ res.send(`
         
         <div class="divider"></div>
         
-        <!-- Phone Input -->
         <div class="input-group">
             <span class="country-code">+</span>
             <input type="text" id="phoneInput" placeholder="Enter phone number (e.g. 254739006966)" autocomplete="tel">
@@ -741,23 +597,19 @@ res.send(`
             </button>
         </div>
         
-        <!-- Status Message -->
         <div id="statusMessage" class="status-message"></div>
         
-        <!-- Code Display -->
         <div id="codeDisplay" class="code-display">
             <div class="code-label"><i class="fas fa-key"></i> Pairing Code</div>
             <div class="code" id="pairCode" onclick="copyCode()">------</div>
             <div class="copy-hint"><i class="fas fa-copy"></i> Click code to copy</div>
         </div>
         
-        <!-- Connected Badge -->
         <div id="connectedBadge" class="connected-badge">
             <i class="fas fa-check-circle"></i>
             <span>Connected successfully</span>
         </div>
         
-        <!-- Footer -->
         <div class="footer">
             <span>Powered with <span class="heart">♥</span> by <a href="#">CypherNodeMD</a></span>
         </div>
@@ -921,7 +773,6 @@ app.post('/start-session', (req, res) => {
 
     const cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
     
-    // Store the phone number for the bot to use
     webPhoneNumber = cleanPhone;
     webNumberReceived = true;
     webPairCode = null;
@@ -956,8 +807,8 @@ app.post('/delete-session', (req, res) => {
 });
 
 // ========== START SERVER ==========
-app.listen(PORT, () => {
-    console.log(chalk.green(`🌐 Web interface: http://localhost:${PORT}`));
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(chalk.green(`🌐 Web interface: http://0.0.0.0:${PORT}`));
     console.log(chalk.yellow('📱 Enter your phone number on the web page'));
 });
 
@@ -996,33 +847,20 @@ const useMobile = process.argv.includes("--mobile")
 
 const rl = process.stdin.isTTY ? readline.createInterface({ input: process.stdin, output: process.stdout }) : null
 
-// Question function that uses web input
+// Question function that uses web input - NO WAITING
 const question = async (text) => {
     console.log(chalk.yellow('⏳ Waiting for phone number from web...'));
     
-    // Wait for web input (with timeout)
-    let attempts = 0;
-    while (!webNumberReceived && attempts < 60) {
-        await delay(1000);
-        attempts++;
-        if (attempts % 10 === 0) {
-            console.log(chalk.yellow(`⏳ Still waiting for web input... (${attempts}s)`));
-        }
-    }
-    
+    // Check if we have a web number
     if (webNumberReceived && webPhoneNumber) {
         console.log(chalk.green(`📱 Using phone number from web: ${webPhoneNumber}`));
-        webNumberReceived = false; // Reset so we don't reuse
+        webNumberReceived = false;
         return webPhoneNumber;
     }
     
-    // Fallback to terminal
-    console.log(chalk.yellow('⚠️ No web input received. Falling back to terminal.'));
-    if (rl) {
-        return new Promise((resolve) => rl.question(text, resolve))
-    } else {
-        return Promise.resolve(settings.ownerNumber || phoneNumber)
-    }
+    // If no web input, use default owner number
+    console.log(chalk.yellow('📱 No web input. Using default owner number.'));
+    return settings.ownerNumber || phoneNumber;
 }
 
 async function startXeonBotInc() {
@@ -1037,7 +875,6 @@ async function startXeonBotInc() {
         phoneNumber = phoneNumber.replace(/[^0-9]/g, '')
 
         // Skip validation - WhatsApp will validate the number
-        // Just make sure it's not empty
         if (!phoneNumber || phoneNumber.length < 7) {
             console.log(chalk.red('❌ Invalid phone number format'));
             console.log(chalk.yellow('💡 Please enter your full number with country code (e.g., 254107948987)'));
@@ -1050,8 +887,6 @@ async function startXeonBotInc() {
         if (!fs.existsSync(sessionFolder)) {
             fs.mkdirSync(sessionFolder, { recursive: true });
         }
-
-        // ... rest of the code remains the same ...
 
         let { version, isLatest } = await fetchLatestBaileysVersion()
         const { state, saveCreds } = await useMultiFileAuthState(sessionFolder)
@@ -1165,7 +1000,6 @@ async function startXeonBotInc() {
                     console.log(chalk.black(chalk.bgGreen(`Pairing Code for ${phoneNumber}: `)), chalk.black(chalk.white(code)))
                     console.log(chalk.yellow(`\nPlease enter this code in your WhatsApp app:\n1. Open WhatsApp\n2. Go to Settings > Linked Devices\n3. Tap "Link a Device"\n4. Enter the code shown above`))
                     
-                    // Send code to web
                     webPairCode = code;
                 } catch (error) {
                     console.error('Error requesting pairing code:', error)
@@ -1185,32 +1019,32 @@ async function startXeonBotInc() {
                 console.log(chalk.yellow(`🔄 ${phoneNumber}: Connecting...`))
             }
             
-           if (connection == "open") {
-    console.log(chalk.magenta(` `))
-    console.log(chalk.yellow(`🌿${phoneNumber} Connected!`))
+            if (connection == "open") {
+                console.log(chalk.magenta(` `))
+                console.log(chalk.yellow(`🌿${phoneNumber} Connected!`))
 
-    webReady = true;
+                webReady = true;
 
-    try {
-        const botNumber = XeonBotInc.user.id.split(':')[0] + '@s.whatsapp.net';
-        await XeonBotInc.sendMessage(botNumber, {
-            text: `*Hello! Type* \n\n👉 \`\`\`.StartBot\`\`\` 👈\n\nto start your Bot🤖!`
-        });
-        console.log(chalk.green(`✅ StartBot message sent`));
-    } catch (error) {
-        console.error('❌ Error sending message:', error.message)
-    }
+                try {
+                    const botNumber = XeonBotInc.user.id.split(':')[0] + '@s.whatsapp.net';
+                    await XeonBotInc.sendMessage(botNumber, {
+                        text: `*Hello! Type* \n\n👉 \`\`\`.StartBot\`\`\` 👈\n\nto start your Bot🤖!`
+                    });
+                    console.log(chalk.green(`✅ StartBot message sent`));
+                } catch (error) {
+                    console.error('❌ Error sending message:', error.message)
+                }
 
-    await delay(1999)
-    console.log(chalk.yellow(`\n\n                  ${chalk.bold.blue(`[ ${global.botname || '𝐂𝐘𝐏𝐇𝐄𝐑 𝐍𝐎𝐃𝐄 ✅'} ]`)}\n\n`))
-    console.log(chalk.cyan(`< ================================================== >`))
-    console.log(chalk.magenta(`\n${global.themeemoji || '•'} YT CHANNEL: 𝐂𝐘𝐏𝐇𝐄𝐑 𝐍𝐎𝐃𝐄 𝐌𝐃✅`))
-    console.log(chalk.magenta(`${global.themeemoji || '•'} GITHUB: mrunqiuehacker`))
-    console.log(chalk.magenta(`${global.themeemoji || '•'} WA NUMBER: ${owner}`))
-    console.log(chalk.magenta(`${global.themeemoji || '•'} CREDIT: 𝐂𝐘𝐏𝐇𝐄𝐑 𝐍𝐎𝐃𝐄 𝐌𝐃✅`))
-    console.log(chalk.green(`${global.themeemoji || '•'} 🤖 Bot Connected Successfully! ✅`))
-    console.log(chalk.blue(`Bot Version: ${settings.version}`))
-}
+                await delay(1999)
+                console.log(chalk.yellow(`\n\n                  ${chalk.bold.blue(`[ ${global.botname || '𝐂𝐘𝐏𝐇𝐄𝐑 𝐍𝐎𝐃𝐄 ✅'} ]`)}\n\n`))
+                console.log(chalk.cyan(`< ================================================== >`))
+                console.log(chalk.magenta(`\n${global.themeemoji || '•'} YT CHANNEL: 𝐂𝐘𝐏𝐇𝐄𝐑 𝐍𝐎𝐃𝐄 𝐌𝐃✅`))
+                console.log(chalk.magenta(`${global.themeemoji || '•'} GITHUB: mrunqiuehacker`))
+                console.log(chalk.magenta(`${global.themeemoji || '•'} WA NUMBER: ${owner}`))
+                console.log(chalk.magenta(`${global.themeemoji || '•'} CREDIT: 𝐂𝐘𝐏𝐇𝐄𝐑 𝐍𝐎𝐃𝐄 𝐌𝐃✅`))
+                console.log(chalk.green(`${global.themeemoji || '•'} 🤖 Bot Connected Successfully! ✅`))
+                console.log(chalk.blue(`Bot Version: ${settings.version}`))
+            }
             
             if (connection === 'close') {
                 const shouldReconnect = (lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut
@@ -1294,11 +1128,15 @@ async function startXeonBotInc() {
     }
 }
 
-// Start the bot
-startXeonBotInc().catch(error => {
-    console.error('Fatal error:', error)
-    process.exit(1)
-})
+// ========== START BOT AFTER WEB SERVER ==========
+// Start bot after web server is running
+setTimeout(() => {
+    console.log(chalk.yellow('🚀 Starting WhatsApp bot in background...'));
+    startXeonBotInc().catch(error => {
+        console.error('Fatal error:', error);
+        process.exit(1);
+    });
+}, 3000);
 
 process.on('uncaughtException', (err) => {
     console.error('Uncaught Exception:', err)
