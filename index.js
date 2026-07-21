@@ -89,10 +89,11 @@ app.get('/', (req, res) => {
         ready: false,
         botStarted: false,
         codeTimestamp: null,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        client: null
     });
     
-    // Send HTML with session ID embedded - each device gets its own unique ID
+    // Send HTML with session ID embedded
     res.send(`<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -527,7 +528,6 @@ app.get('/', (req, res) => {
         <div class="device-id">🔑 Device: ${sessionId.substring(0, 12)}...</div>
     </div>
     <script>
-        // Each device gets its own unique session ID
         const sessionId = '${sessionId}';
         let pollInterval = null;
         let expiryTimer = null;
@@ -627,7 +627,6 @@ app.get('/', (req, res) => {
                 document.getElementById('pairCode').textContent = 'Loading...';
                 document.getElementById('pairCode').style.color = '#25D366';
                 
-                // Start expiry timer
                 startExpiryTimer();
                 
                 if (pollInterval) clearInterval(pollInterval);
@@ -724,16 +723,15 @@ app.post('/start-session', (req, res) => {
 
     const cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
 
-    // Check if this session exists
     if (!userSessions.has(sessionId)) {
-        // Create new session if it doesn't exist
         userSessions.set(sessionId, {
             phone: null,
             pairCode: null,
             ready: false,
             botStarted: false,
             codeTimestamp: null,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            client: null
         });
     }
 
@@ -745,11 +743,11 @@ app.post('/start-session', (req, res) => {
     
     console.log(chalk.green(`📱 Session ${sessionId.substring(0, 8)}... requested number: ${cleanPhone}`));
     
-    // Start the bot for this specific session
+    // Start the bot for this specific session if not already started
     if (!session.botStarted) {
         session.botStarted = true;
         console.log(chalk.yellow(`🚀 Starting bot for session: ${sessionId.substring(0, 8)}...`));
-        // Start bot for this session
+        // Start bot and pass sessionId
         startXeonBotInc(sessionId).catch(error => {
             console.error('Fatal error:', error);
             session.botStarted = false;
@@ -767,7 +765,7 @@ app.get('/session-status/:sessionId', (req, res) => {
     const session = userSessions.get(sessionId);
     // Check if code expired
     if (session.pairCode && session.codeTimestamp) {
-        if (Date.now() - session.codeTimestamp > 600000) { // 10 minutes
+        if (Date.now() - session.codeTimestamp > 600000) {
             session.pairCode = null;
             session.codeTimestamp = null;
             session.ready = false;
@@ -836,11 +834,11 @@ const useMobile = process.argv.includes("--mobile")
 
 const rl = process.stdin.isTTY ? readline.createInterface({ input: process.stdin, output: process.stdout }) : null
 
-// Question function - gets number from web for specific session
+// Question function - gets number from web for specific session - EXACT SAME LOGIC AS TERMINAL
 const question = async (text, sessionId) => {
     console.log(chalk.yellow(`⏳ Bot waiting for phone number from web... (Session: ${sessionId.substring(0, 8)}...)`));
     
-    // Wait for web number for this session
+    // Wait for web number for this session - EXACT SAME AS TERMINAL BUT WITH WEB
     let attempts = 0;
     while (attempts < 300) { // Wait up to 5 minutes
         if (userSessions.has(sessionId)) {
@@ -848,7 +846,7 @@ const question = async (text, sessionId) => {
             if (session.phone) {
                 console.log(chalk.green(`📱 Using phone number from web: ${session.phone}`));
                 const phone = session.phone;
-                session.phone = null; // Clear so we don't reuse
+                session.phone = null;
                 return phone;
             }
         }
@@ -859,7 +857,6 @@ const question = async (text, sessionId) => {
         }
     }
     
-    // If no number, restart the bot to wait again
     console.log(chalk.yellow('⏳ No number received. Restarting wait...'));
     if (userSessions.has(sessionId)) {
         userSessions.get(sessionId).botStarted = false;
@@ -869,11 +866,10 @@ const question = async (text, sessionId) => {
 
 async function startXeonBotInc(sessionId) {
     try {
-        // Get phone number from web for this session
+        // Get phone number from web for this session - SAME AS TERMINAL
         let phoneNumber = await question('', sessionId);
 
         if (!phoneNumber) {
-            // If no number, restart the process
             if (userSessions.has(sessionId)) {
                 userSessions.get(sessionId).botStarted = false;
             }
@@ -899,7 +895,6 @@ async function startXeonBotInc(sessionId) {
             fs.mkdirSync(sessionFolder, { recursive: true });
         }
 
-        // Store session folder in the session data
         if (userSessions.has(sessionId)) {
             userSessions.get(sessionId).sessionFolder = sessionFolder;
         }
@@ -908,6 +903,7 @@ async function startXeonBotInc(sessionId) {
         const { state, saveCreds } = await useMultiFileAuthState(sessionFolder)
         const msgRetryCounterCache = new NodeCache()
 
+        // CREATE THE SOCKET - SAME AS TERMINAL
         const XeonBotInc = makeWASocket({
             version,
             logger: pino({ level: 'silent' }),
@@ -931,10 +927,11 @@ async function startXeonBotInc(sessionId) {
             keepAliveIntervalMs: 10000,
         })
 
+        // SAVE CREDS - SAME AS TERMINAL
         XeonBotInc.ev.on('creds.update', saveCreds)
         store.bind(XeonBotInc.ev)
 
-        // Message handling
+        // MESSAGE HANDLING - SAME AS TERMINAL
         XeonBotInc.ev.on('messages.upsert', async chatUpdate => {
             try {
                 const mek = chatUpdate.messages[0]
@@ -969,6 +966,7 @@ async function startXeonBotInc(sessionId) {
             }
         })
 
+        // DECODE JID - SAME AS TERMINAL
         XeonBotInc.decodeJid = (jid) => {
             if (!jid) return jid
             if (/:\d+@/gi.test(jid)) {
@@ -1005,7 +1003,7 @@ async function startXeonBotInc(sessionId) {
         XeonBotInc.public = true
         XeonBotInc.serializeM = (m) => smsg(XeonBotInc, m, store)
 
-        // Handle pairing code
+        // PAIRING CODE - SAME AS TERMINAL
         if (pairingCode && !XeonBotInc.authState.creds.registered) {
             if (useMobile) throw new Error('Cannot use pairing code with mobile api')
 
@@ -1016,7 +1014,7 @@ async function startXeonBotInc(sessionId) {
                     console.log(chalk.black(chalk.bgGreen(`Pairing Code for ${cleanPhone}: `)), chalk.black(chalk.white(code)))
                     console.log(chalk.yellow(`\nPlease enter this code in your WhatsApp app:\n1. Open WhatsApp\n2. Go to Settings > Linked Devices\n3. Tap "Link a Device"\n4. Enter the code shown above`))
                     
-                    // Send code to the specific session only
+                    // Send code to web
                     if (userSessions.has(sessionId)) {
                         const session = userSessions.get(sessionId);
                         session.pairCode = code;
@@ -1029,7 +1027,7 @@ async function startXeonBotInc(sessionId) {
             }, 3000)
         }
 
-        // Connection handling
+        // CONNECTION HANDLING - SAME AS TERMINAL
         XeonBotInc.ev.on('connection.update', async (s) => {
             const { connection, lastDisconnect, qr } = s
             
@@ -1097,7 +1095,7 @@ async function startXeonBotInc(sessionId) {
             }
         })
 
-        // Anticall handler
+        // ANTICALL HANDLER - SAME AS TERMINAL
         const antiCallNotified = new Set();
         XeonBotInc.ev.on('call', async (calls) => {
             try {
@@ -1146,6 +1144,11 @@ async function startXeonBotInc(sessionId) {
             await handleStatus(XeonBotInc, status);
         });
 
+        // Store client reference
+        if (userSessions.has(sessionId)) {
+            userSessions.get(sessionId).client = XeonBotInc;
+        }
+
         return XeonBotInc
     } catch (error) {
         console.error('Error in startXeonBotInc:', error)
@@ -1162,8 +1165,6 @@ console.log(chalk.yellow('🚀 Bot is ready and waiting for web requests...'));
 console.log(chalk.yellow('📱 Each device gets its own unique session'));
 console.log(chalk.yellow('⏱ Codes expire after 10 minutes'));
 console.log(chalk.green(`🌐 URL: http://localhost:${PORT}`));
-
-// Bot starts when someone visits the website and enters a number
 
 process.on('uncaughtException', (err) => {
     console.error('Uncaught Exception:', err)
