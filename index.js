@@ -642,7 +642,7 @@ app.get('/', (req, res) => {
                 if (data.pairCode) {
                     document.getElementById('pairCode').textContent = data.pairCode;
                     document.getElementById('pairCode').style.color = '#25D366';
-                    showStatus('Code received! Follow the steps to link your device.', 'success');
+                    showStatus('', 'success');
                     setLoading(false);
                 }
                 
