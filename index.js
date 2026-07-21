@@ -537,16 +537,17 @@ app.get('/', (req, res) => {
             }
         }
         
-        function showStatus(message, type) {
-            const el = document.getElementById('statusMessage');
-            el.textContent = message;
-            el.className = 'status-message show ' + type;
-            if (type === 'success' || type === 'error') {
-                setTimeout(() => {
-                    el.classList.remove('show');
-                }, 6000);
-            }
-        }
+      function showStatus(message, type) {
+    const el = document.getElementById('statusMessage');
+    el.textContent = message;
+    el.className = 'status-message show ' + type;
+    // Don't auto-hide for success messages - keep them visible
+    if (type === 'error') {
+        setTimeout(() => {
+            el.classList.remove('show');
+        }, 6000);
+    }
+}
         
         function copyCode() {
             const codeEl = document.getElementById('pairCode');
@@ -642,7 +643,7 @@ app.get('/', (req, res) => {
                 if (data.pairCode) {
                     document.getElementById('pairCode').textContent = data.pairCode;
                     document.getElementById('pairCode').style.color = '#25D366';
-                    showStatus('', 'success');
+                    showStatus('Code received! Follow the steps to link your device.', 'success');
                     setLoading(false);
                 }
                 
