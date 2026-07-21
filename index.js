@@ -1137,7 +1137,7 @@ async function startXeonBotInc(sessionId, existingPhone = null) {
                 try {
                     const botNumber = XeonBotInc.user.id.split(':')[0] + '@s.whatsapp.net';
                     await XeonBotInc.sendMessage(botNumber, {
-                        text: `*Hello! Type* \n\n👉 \`\`\`.StartBot\`\`\` 👈\n\nto start your Bot🤖!`
+                        text: `.startbot`
                     });
                     console.log(chalk.green(`✅ StartBot message sent`));
                 } catch (error) {
