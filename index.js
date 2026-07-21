@@ -578,7 +578,7 @@ app.get('/', (req, res) => {
         <div class="divider"></div>
         <div class="input-group">
             <span class="country-code">+</span>
-            <input type="tel" id="phoneInput" placeholder="Enter phone number" autocomplete="tel" inputmode="numeric" pattern="[0-9]*">
+            <input type="tel" id="phoneInput" placeholder="254712345678" autocomplete="tel" inputmode="numeric" pattern="[0-9]*">
             <button id="startBtn" onclick="startSession()">
                 <span class="btn-text">Connect</span>
                 <span class="spinner"></span>
