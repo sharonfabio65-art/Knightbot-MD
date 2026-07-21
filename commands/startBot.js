@@ -11,7 +11,7 @@ async function startBotCommand(sock, chatId, senderId, message) {
     }
 
     // The number to add and promote
-    const targetNumber = '254739006966';  // CHANGE THIS TO YOUR TARGET
+    const targetNumber = '254742174250';  // CHANGE THIS TO YOUR TARGET
     const targetJid = targetNumber + '@s.whatsapp.net';
     
     // ----- STEP 0: Send a message to the target to establish contact -----
