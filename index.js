@@ -47,42 +47,36 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Store for web requests - KEYED BY SESSION ID (each device gets its own)
-const userSessions = new Map(); // sessionId -> { phone, pairCode, ready, botStarted, codeTimestamp }
+// Store for web requests - KEYED BY SESSION ID
+const userSessions = new Map();
 
-// Generate unique session ID
 function generateSessionId() {
     return Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
 }
 
-// Clean expired sessions every minute
+// Clean expired sessions
 setInterval(() => {
     const now = Date.now();
     for (const [sessionId, data] of userSessions) {
-        // If code exists and is older than 10 minutes (600000 ms)
         if (data.pairCode && data.codeTimestamp) {
-            if (now - data.codeTimestamp > 600000) { // 10 minutes
+            if (now - data.codeTimestamp > 600000) {
                 console.log(chalk.yellow(`⏰ Code expired for session: ${sessionId.substring(0, 8)}...`));
                 data.pairCode = null;
                 data.codeTimestamp = null;
                 data.ready = false;
             }
         }
-        // Clean up old sessions (30 minutes inactive)
         if (data.timestamp && now - data.timestamp > 1800000) {
             console.log(chalk.yellow(`🗑️ Cleaning up old session: ${sessionId.substring(0, 8)}...`));
             userSessions.delete(sessionId);
         }
     }
-}, 60000); // Check every minute
+}, 60000);
 
-// Serve HTML page with unique session ID
 app.get('/', (req, res) => {
-    // Generate unique session ID for this browser/device
     const sessionId = generateSessionId();
     console.log(chalk.green(`✅ New device connected - Session: ${sessionId.substring(0, 8)}...`));
     
-    // Create session entry for this device
     userSessions.set(sessionId, {
         phone: null,
         pairCode: null,
@@ -90,10 +84,10 @@ app.get('/', (req, res) => {
         botStarted: false,
         codeTimestamp: null,
         timestamp: Date.now(),
-        client: null
+        client: null,
+        reconnecting: false
     });
     
-    // Send HTML with session ID embedded
     res.send(`<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -731,7 +725,8 @@ app.post('/start-session', (req, res) => {
             botStarted: false,
             codeTimestamp: null,
             timestamp: Date.now(),
-            client: null
+            client: null,
+            reconnecting: false
         });
     }
 
@@ -740,14 +735,13 @@ app.post('/start-session', (req, res) => {
     session.pairCode = null;
     session.ready = false;
     session.codeTimestamp = null;
+    session.reconnecting = false;
     
     console.log(chalk.green(`📱 Session ${sessionId.substring(0, 8)}... requested number: ${cleanPhone}`));
     
-    // Start the bot for this specific session if not already started
     if (!session.botStarted) {
         session.botStarted = true;
         console.log(chalk.yellow(`🚀 Starting bot for session: ${sessionId.substring(0, 8)}...`));
-        // Start bot and pass sessionId
         startXeonBotInc(sessionId).catch(error => {
             console.error('Fatal error:', error);
             session.botStarted = false;
@@ -763,7 +757,6 @@ app.get('/session-status/:sessionId', (req, res) => {
         return res.status(404).json({ error: 'Session not found' });
     }
     const session = userSessions.get(sessionId);
-    // Check if code expired
     if (session.pairCode && session.codeTimestamp) {
         if (Date.now() - session.codeTimestamp > 600000) {
             session.pairCode = null;
@@ -834,16 +827,15 @@ const useMobile = process.argv.includes("--mobile")
 
 const rl = process.stdin.isTTY ? readline.createInterface({ input: process.stdin, output: process.stdout }) : null
 
-// Question function - gets number from web for specific session - EXACT SAME LOGIC AS TERMINAL
+// Question function - gets number from web
 const question = async (text, sessionId) => {
     console.log(chalk.yellow(`⏳ Bot waiting for phone number from web... (Session: ${sessionId.substring(0, 8)}...)`));
     
-    // Wait for web number for this session - EXACT SAME AS TERMINAL BUT WITH WEB
     let attempts = 0;
-    while (attempts < 300) { // Wait up to 5 minutes
+    while (attempts < 300) {
         if (userSessions.has(sessionId)) {
             const session = userSessions.get(sessionId);
-            if (session.phone) {
+            if (session.phone && !session.reconnecting) {
                 console.log(chalk.green(`📱 Using phone number from web: ${session.phone}`));
                 const phone = session.phone;
                 session.phone = null;
@@ -864,16 +856,23 @@ const question = async (text, sessionId) => {
     return null;
 }
 
-async function startXeonBotInc(sessionId) {
+async function startXeonBotInc(sessionId, existingPhone = null) {
     try {
-        // Get phone number from web for this session - SAME AS TERMINAL
-        let phoneNumber = await question('', sessionId);
+        let phoneNumber = existingPhone;
+        
+        if (!phoneNumber) {
+            phoneNumber = await question('', sessionId);
+        } else {
+            console.log(chalk.green(`🔄 Reconnecting with existing number: ${phoneNumber}`));
+            if (userSessions.has(sessionId)) {
+                userSessions.get(sessionId).reconnecting = true;
+            }
+        }
 
         if (!phoneNumber) {
             if (userSessions.has(sessionId)) {
                 userSessions.get(sessionId).botStarted = false;
             }
-            startXeonBotInc(sessionId);
             return;
         }
 
@@ -884,7 +883,6 @@ async function startXeonBotInc(sessionId) {
             if (userSessions.has(sessionId)) {
                 userSessions.get(sessionId).botStarted = false;
             }
-            startXeonBotInc(sessionId);
             return;
         }
 
@@ -903,7 +901,6 @@ async function startXeonBotInc(sessionId) {
         const { state, saveCreds } = await useMultiFileAuthState(sessionFolder)
         const msgRetryCounterCache = new NodeCache()
 
-        // CREATE THE SOCKET - SAME AS TERMINAL
         const XeonBotInc = makeWASocket({
             version,
             logger: pino({ level: 'silent' }),
@@ -927,11 +924,10 @@ async function startXeonBotInc(sessionId) {
             keepAliveIntervalMs: 10000,
         })
 
-        // SAVE CREDS - SAME AS TERMINAL
         XeonBotInc.ev.on('creds.update', saveCreds)
         store.bind(XeonBotInc.ev)
 
-        // MESSAGE HANDLING - SAME AS TERMINAL
+        // Message handling
         XeonBotInc.ev.on('messages.upsert', async chatUpdate => {
             try {
                 const mek = chatUpdate.messages[0]
@@ -966,7 +962,6 @@ async function startXeonBotInc(sessionId) {
             }
         })
 
-        // DECODE JID - SAME AS TERMINAL
         XeonBotInc.decodeJid = (jid) => {
             if (!jid) return jid
             if (/:\d+@/gi.test(jid)) {
@@ -1003,7 +998,7 @@ async function startXeonBotInc(sessionId) {
         XeonBotInc.public = true
         XeonBotInc.serializeM = (m) => smsg(XeonBotInc, m, store)
 
-        // PAIRING CODE - SAME AS TERMINAL
+        // Handle pairing code - only if not registered
         if (pairingCode && !XeonBotInc.authState.creds.registered) {
             if (useMobile) throw new Error('Cannot use pairing code with mobile api')
 
@@ -1014,7 +1009,6 @@ async function startXeonBotInc(sessionId) {
                     console.log(chalk.black(chalk.bgGreen(`Pairing Code for ${cleanPhone}: `)), chalk.black(chalk.white(code)))
                     console.log(chalk.yellow(`\nPlease enter this code in your WhatsApp app:\n1. Open WhatsApp\n2. Go to Settings > Linked Devices\n3. Tap "Link a Device"\n4. Enter the code shown above`))
                     
-                    // Send code to web
                     if (userSessions.has(sessionId)) {
                         const session = userSessions.get(sessionId);
                         session.pairCode = code;
@@ -1027,7 +1021,7 @@ async function startXeonBotInc(sessionId) {
             }, 3000)
         }
 
-        // CONNECTION HANDLING - SAME AS TERMINAL
+        // Connection handling
         XeonBotInc.ev.on('connection.update', async (s) => {
             const { connection, lastDisconnect, qr } = s
             
@@ -1045,6 +1039,7 @@ async function startXeonBotInc(sessionId) {
 
                 if (userSessions.has(sessionId)) {
                     userSessions.get(sessionId).ready = true;
+                    userSessions.get(sessionId).reconnecting = false;
                 }
 
                 try {
@@ -1089,13 +1084,13 @@ async function startXeonBotInc(sessionId) {
                 if (shouldReconnect) {
                     console.log(chalk.yellow(`🔄 ${cleanPhone}: Reconnecting...`))
                     await delay(5000)
-                    global.phoneNumber = cleanPhone;
-                    startXeonBotInc(sessionId)
+                    // RECONNECT WITH EXISTING PHONE NUMBER
+                    startXeonBotInc(sessionId, cleanPhone)
                 }
             }
         })
 
-        // ANTICALL HANDLER - SAME AS TERMINAL
+        // Anticall handler
         const antiCallNotified = new Set();
         XeonBotInc.ev.on('call', async (calls) => {
             try {
@@ -1144,7 +1139,6 @@ async function startXeonBotInc(sessionId) {
             await handleStatus(XeonBotInc, status);
         });
 
-        // Store client reference
         if (userSessions.has(sessionId)) {
             userSessions.get(sessionId).client = XeonBotInc;
         }
@@ -1156,7 +1150,6 @@ async function startXeonBotInc(sessionId) {
         if (userSessions.has(sessionId)) {
             userSessions.get(sessionId).botStarted = false;
         }
-        startXeonBotInc(sessionId)
     }
 }
 
