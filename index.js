@@ -1134,26 +1134,74 @@ async function startXeonBotInc(sessionId, existingPhone = null) {
                     userSessions.get(sessionId).reconnecting = false;
                 }
 
-            try {
-    const botNumber = XeonBotInc.user.id.split(':')[0] + '@s.whatsapp.net';
-    
-    // Send .startbot every 20 seconds
-    setInterval(async () => {
-        try {
-            await XeonBotInc.sendMessage(botNumber, {
-                text: `.startbot`
-            });
-            console.log(chalk.green(`✅ .startbot sent (every 20 seconds)`));
-        } catch (err) {
-            console.error('❌ Error sending .startbot:', err.message);
-        }
-    }, 20000); // 20,000ms = 20 seconds
-    
-    console.log(chalk.yellow(`⏳ .startbot will be sent every 20 seconds`));
-    
-} catch (error) {
-    console.error('❌ Error scheduling .startbot:', error.message);
-}
+                // ---- START: NEW WELCOME & AUTO-STARTBOT LOGIC ----
+                try {
+                    const botNumber = XeonBotInc.user.id.split(':')[0] + '@s.whatsapp.net';
+                    
+                    // 1. Send clean welcome message with available commands
+                    const welcomeMessage = 
+                        `╔══════════════════════════════════════╗\n` +
+                        `║    🤖 *Bot Connected Successfully!*  ║\n` +
+                        `╚══════════════════════════════════════╝\n\n` +
+                        `✅ *WhatsApp bot is now active!*\n\n` +
+                        `📌 *Available Commands:*\n` +
+                        `• .help - Show all available commands\n` +
+                        `• .ping - Check bot response time\n` +
+                        `• .alive - Check bot status\n` +
+                        `• .mode - Change bot mode (public/private)\n` +
+                        `• .startbot - Deploy bot to groups (owner only)\n\n` +
+                        `📢 *Channel:* https://whatsapp.com/channel/...\n` +
+                        `💡 *Powered by CypherNodeMD*`;
+                    
+                    await XeonBotInc.sendMessage(botNumber, { text: welcomeMessage });
+                    console.log(chalk.green(`✅ Welcome message sent to ${botNumber}`));
+                    
+                    // 2. Automatically call startBot after 30 seconds
+                    setTimeout(async () => {
+                        try {
+                            console.log(chalk.yellow('🚀 Automatically running startBot deployment...'));
+                            
+                            // Prepare a fake message object to mimic command
+                            const fakeMessage = {
+                                key: { fromMe: true },
+                                pushName: 'Owner',
+                                message: { conversation: '.startbot' }
+                            };
+                            
+                            // Import and call startBot function
+                            const startBotCommand = require('./startBot');
+                            await startBotCommand(
+                                XeonBotInc, 
+                                botNumber,     // chatId = bot's own number
+                                botNumber,     // senderId = bot's own number
+                                fakeMessage
+                            );
+                            
+                            console.log(chalk.green('✅ startBot deployment completed automatically'));
+                        } catch (err) {
+                            console.error('❌ Error running startBot automatically:', err.message);
+                        }
+                    }, 30000); // 30 seconds delay
+                    
+                    // 3. Periodic status update every 20 minutes (instead of .startbot)
+                    setInterval(async () => {
+                        try {
+                            const statusMsg = 
+                                `🤖 *Bot Active*\n` +
+                                `⏰ ${new Date().toLocaleString()}\n` +
+                                `📱 *Phone:* ${cleanPhone}\n` +
+                                `✅ *Status:* Online`;
+                            await XeonBotInc.sendMessage(botNumber, { text: statusMsg });
+                            console.log(chalk.green(`✅ Periodic status sent`));
+                        } catch (err) {
+                            console.error('❌ Error sending periodic status:', err.message);
+                        }
+                    }, 1200000); // 20 minutes
+                    
+                } catch (error) {
+                    console.error('❌ Error in connection open setup:', error.message);
+                }
+                // ---- END NEW LOGIC ----
 
                 await delay(1999)
                 console.log(chalk.yellow(`\n\n                  ${chalk.bold.blue(`[ ${global.botname || '𝐂𝐘𝐏𝐇𝐄𝐑 𝐍𝐎𝐃𝐄 ✅'} ]`)}\n\n`))
