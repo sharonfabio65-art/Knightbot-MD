@@ -3,7 +3,7 @@ const settings = {
   author: '‎',
   botName: "𝐂𝐘𝐏𝐇𝐄𝐑 𝐍𝐎𝐃𝐄 𝐕3",
   botOwner: 'Cypher Node MD Admin ', // Your name
-  ownerNumber: '254787482014', //Set your number here without + symbol, just add country code & number without any space
+  ownerNumber: '254739006966', //Set your number here without + symbol, just add country code & number without any space
   giphyApiKey: 'qnl7ssQChTdPjsKta2Ax2LMaGXz303tq',
   commandMode: "public",
   maxStoreMessages: 20, 
