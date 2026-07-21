@@ -537,33 +537,46 @@ app.get('/', (req, res) => {
             }
         }
         
-      function showStatus(message, type) {
-    const el = document.getElementById('statusMessage');
-    el.textContent = message;
-    el.className = 'status-message show ' + type;
-    // Don't auto-hide for success messages - keep them visible
-    if (type === 'error') {
-        setTimeout(() => {
-            el.classList.remove('show');
-        }, 6000);
-    }
-}
+        function showStatus(message, type) {
+            const el = document.getElementById('statusMessage');
+            el.textContent = message;
+            el.className = 'status-message show ' + type;
+            // Only hide error messages - keep success messages visible
+            if (type === 'error') {
+                setTimeout(() => {
+                    el.classList.remove('show');
+                }, 6000);
+            }
+        }
         
         function copyCode() {
             const codeEl = document.getElementById('pairCode');
             const code = codeEl.textContent;
             if (code && code !== '------' && code !== 'Loading...' && code !== 'Expired') {
-                navigator.clipboard.writeText(code).then(() => {
-                    showStatus('Code copied to clipboard!', 'success');
-                }).catch(() => {
-                    const range = document.createRange();
-                    range.selectNode(codeEl);
-                    window.getSelection().removeAllRanges();
-                    window.getSelection().addRange(range);
-                    document.execCommand('copy');
-                    showStatus('Code copied!', 'success');
-                });
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(code).then(() => {
+                        showStatus('✅ Code copied to clipboard!', 'success');
+                    }).catch(() => {
+                        copyCodeFallback(codeEl);
+                    });
+                } else {
+                    copyCodeFallback(codeEl);
+                }
             }
+        }
+        
+        function copyCodeFallback(codeEl) {
+            const range = document.createRange();
+            range.selectNode(codeEl);
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(range);
+            try {
+                document.execCommand('copy');
+                showStatus('✅ Code copied!', 'success');
+            } catch (e) {
+                showStatus('❌ Failed to copy. Please select and copy manually.', 'error');
+            }
+            window.getSelection().removeAllRanges();
         }
         
         function startExpiryTimer() {
