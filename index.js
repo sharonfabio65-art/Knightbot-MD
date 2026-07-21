@@ -93,26 +93,33 @@ app.get('/', (req, res) => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>CypherNodeMD Bot - Pairing</title>
+    <title>Bot Maintenance</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
         html, body {
             height: 100%;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
         }
+        
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             min-height: 100vh;
             display: flex;
             justify-content: center;
-            align-items: flex-start;
+            align-items: center;
             padding: 20px;
             background: #0a0e17;
-            overflow-y: auto;
             position: relative;
         }
+        
+        /* Animated Background */
         .bg-animation {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -120,6 +127,7 @@ app.get('/', (req, res) => {
             background: linear-gradient(135deg, #0a0e17 0%, #1a1a2e 50%, #16213e 100%);
             overflow: hidden;
         }
+        
         .bg-animation .orb {
             position: absolute;
             border-radius: 50%;
@@ -127,21 +135,50 @@ app.get('/', (req, res) => {
             opacity: 0.4;
             animation: floatOrb 15s ease-in-out infinite;
         }
-        .bg-animation .orb:nth-child(1) { width: 400px; height: 400px; background: #25D366; top: -100px; left: -100px; animation-delay: 0s; }
-        .bg-animation .orb:nth-child(2) { width: 350px; height: 350px; background: #128C7E; bottom: -100px; right: -100px; animation-delay: -5s; }
-        .bg-animation .orb:nth-child(3) { width: 250px; height: 250px; background: #075E54; top: 50%; left: 50%; transform: translate(-50%, -50%); animation-delay: -10s; }
-        .bg-animation .orb:nth-child(4) { width: 200px; height: 200px; background: #34B7F1; top: 20%; right: 10%; animation-delay: -3s; }
+        
+        .bg-animation .orb:nth-child(1) {
+            width: 400px; height: 400px;
+            background: #25D366;
+            top: -100px; left: -100px;
+            animation-delay: 0s;
+        }
+        
+        .bg-animation .orb:nth-child(2) {
+            width: 350px; height: 350px;
+            background: #128C7E;
+            bottom: -100px; right: -100px;
+            animation-delay: -5s;
+        }
+        
+        .bg-animation .orb:nth-child(3) {
+            width: 250px; height: 250px;
+            background: #075E54;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            animation-delay: -10s;
+        }
+        
+        .bg-animation .orb:nth-child(4) {
+            width: 200px; height: 200px;
+            background: #34B7F1;
+            top: 20%; right: 10%;
+            animation-delay: -3s;
+        }
+        
         @keyframes floatOrb {
             0%, 100% { transform: translate(0, 0) scale(1); }
             33% { transform: translate(50px, -50px) scale(1.1); }
             66% { transform: translate(-30px, 30px) scale(0.9); }
         }
+        
+        /* Particles */
         .particles {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
             z-index: 0;
             pointer-events: none;
         }
+        
         .particle {
             position: absolute;
             width: 4px;
@@ -150,6 +187,7 @@ app.get('/', (req, res) => {
             border-radius: 50%;
             animation: floatParticle 20s linear infinite;
         }
+        
         .particle:nth-child(1) { left: 10%; animation-delay: 0s; }
         .particle:nth-child(2) { left: 20%; animation-delay: -3s; width: 6px; height: 6px; }
         .particle:nth-child(3) { left: 30%; animation-delay: -6s; }
@@ -160,12 +198,15 @@ app.get('/', (req, res) => {
         .particle:nth-child(8) { left: 80%; animation-delay: -7s; width: 7px; height: 7px; }
         .particle:nth-child(9) { left: 90%; animation-delay: -11s; }
         .particle:nth-child(10) { left: 95%; animation-delay: -14s; width: 4px; height: 4px; }
+        
         @keyframes floatParticle {
             0% { transform: translateY(100vh) scale(0); opacity: 0; }
             10% { opacity: 1; }
             90% { opacity: 1; }
             100% { transform: translateY(-10vh) scale(1); opacity: 0; }
         }
+        
+        /* Container - Glassmorphism */
         .container {
             position: relative;
             z-index: 1;
@@ -173,9 +214,9 @@ app.get('/', (req, res) => {
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border-radius: 24px;
-            max-width: 480px;
+            max-width: 520px;
             width: 100%;
-            padding: 30px 24px;
+            padding: 40px 32px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
             border: 1px solid rgba(255,255,255,0.05);
             transition: transform 0.3s ease;
@@ -184,22 +225,30 @@ app.get('/', (req, res) => {
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
         }
+        
         .container:hover { transform: translateY(-2px); }
-        .header { text-align: center; margin-bottom: 24px; }
-        .header .logo {
-            width: 64px;
-            height: 64px;
+        
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        
+        .header .icon-container {
+            width: 80px;
+            height: 80px;
             background: linear-gradient(135deg, #25D366, #128C7E);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 12px;
+            margin: 0 auto 16px;
             box-shadow: 0 0 40px rgba(37, 211, 102, 0.3);
             animation: pulseGlow 2s ease-in-out infinite;
             position: relative;
         }
-        .header .logo::after {
+        
+        .header .icon-container::after {
             content: '';
             position: absolute;
             inset: -4px;
@@ -210,54 +259,165 @@ app.get('/', (req, res) => {
             z-index: -1;
             animation: pulseGlow 2s ease-in-out infinite;
         }
+        
         @keyframes pulseGlow {
             0%, 100% { box-shadow: 0 0 40px rgba(37, 211, 102, 0.3); }
             50% { box-shadow: 0 0 60px rgba(37, 211, 102, 0.5); }
         }
-        .header .logo i { font-size: 30px; color: white; }
+        
+        .header .icon-container i {
+            font-size: 36px;
+            color: white;
+        }
+        
         .header .bot-badge {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
             background: rgba(37, 211, 102, 0.15);
             border: 1px solid rgba(37, 211, 102, 0.2);
-            padding: 4px 14px;
+            padding: 6px 16px;
             border-radius: 20px;
-            font-size: 10px;
+            font-size: 11px;
             color: #25D366;
             font-weight: 500;
             letter-spacing: 0.5px;
             text-transform: uppercase;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
         }
-        .header .bot-badge i { font-size: 8px; }
-        .header h1 { color: #E9EDEF; font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
+        
+        .header .bot-badge i { font-size: 10px; }
+        
+        .header h1 {
+            color: #E9EDEF;
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+        
         .header h1 span {
             background: linear-gradient(135deg, #25D366, #34B7F1);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
-        .header p { color: #8696A0; font-size: 13px; margin-top: 4px; }
-        .steps-container {
+        
+        .header p {
+            color: #8696A0;
+            font-size: 14px;
+            margin-top: 6px;
+        }
+        
+        /* Status Container */
+        .status-container {
             background: rgba(11, 20, 26, 0.5);
             border-radius: 12px;
-            padding: 4px 0;
-            margin-bottom: 8px;
+            padding: 20px 16px;
+            margin-bottom: 20px;
+            text-align: center;
         }
-        .step {
+        
+        .status-container .status-icon {
+            font-size: 48px;
+            color: #25D366;
+            margin-bottom: 12px;
+            display: inline-block;
+            animation: spin 3s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .status-container .status-text {
+            color: #E9EDEF;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .status-container .status-sub {
+            color: #8696A0;
+            font-size: 13px;
+        }
+        
+        /* Progress Bar */
+        .progress-wrapper {
+            margin: 16px 0 20px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(42, 57, 66, 0.5);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .progress-bar .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #25D366, #34B7F1);
+            border-radius: 10px;
+            animation: progressFill 3s ease-in-out infinite;
+        }
+        
+        @keyframes progressFill {
+            0% { width: 0%; }
+            50% { width: 70%; }
+            100% { width: 100%; }
+        }
+        
+        .progress-text {
             display: flex;
-            align-items: flex-start;
-            gap: 12px;
-            padding: 12px 14px;
-            border-bottom: 1px solid rgba(42, 57, 66, 0.5);
-            transition: background 0.2s;
+            justify-content: space-between;
+            color: #5A6A74;
+            font-size: 11px;
+            margin-top: 6px;
+            letter-spacing: 0.3px;
         }
-        .step:last-child { border-bottom: none; }
-        .step:hover { background: rgba(255,255,255,0.02); }
-        .step-icon {
-            width: 32px;
-            height: 32px;
+        
+        /* Fix Items */
+        .fix-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .fix-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 12px 16px;
+            background: rgba(11, 20, 26, 0.3);
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.03);
+            transition: all 0.3s ease;
+            animation: fadeInItem 0.5s ease forwards;
+            opacity: 0;
+        }
+        
+        .fix-item:nth-child(1) { animation-delay: 0.2s; }
+        .fix-item:nth-child(2) { animation-delay: 0.5s; }
+        .fix-item:nth-child(3) { animation-delay: 0.8s; }
+        .fix-item:nth-child(4) { animation-delay: 1.1s; }
+        .fix-item:nth-child(5) { animation-delay: 1.4s; }
+        
+        @keyframes fadeInItem {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        .fix-item:hover {
+            background: rgba(37, 211, 102, 0.05);
+            border-color: rgba(37, 211, 102, 0.1);
+        }
+        
+        .fix-item .fix-icon {
+            width: 36px;
+            height: 36px;
             background: rgba(37, 211, 102, 0.1);
             border-radius: 50%;
             display: flex;
@@ -266,252 +426,88 @@ app.get('/', (req, res) => {
             flex-shrink: 0;
             border: 1px solid rgba(37, 211, 102, 0.1);
         }
-        .step-icon i { font-size: 13px; color: #25D366; }
-        .step-content { flex: 1; }
-        .step-content .title { color: #E9EDEF; font-size: 13px; font-weight: 500; margin-bottom: 2px; }
-        .step-content .desc { color: #8696A0; font-size: 12px; line-height: 1.4; }
-        .step-content .highlight { color: #25D366; font-weight: 500; }
-        .divider {
-            border-top: 1px solid rgba(42, 57, 66, 0.5);
-            margin: 16px 0 20px;
+        
+        .fix-item .fix-icon i {
+            font-size: 14px;
+            color: #25D366;
         }
-        .input-group {
-            margin-top: 4px;
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        .input-group .country-code {
-            color: #E9EDEF;
-            font-size: 16px;
-            font-weight: 500;
-            padding: 10px 0;
-            min-width: 18px;
-        }
-        .input-group input {
+        
+        .fix-item .fix-content {
             flex: 1;
-            padding: 12px 14px;
-            background: rgba(42, 57, 66, 0.6);
-            border: 1px solid rgba(59, 74, 84, 0.5);
-            border-radius: 10px;
+        }
+        
+        .fix-item .fix-content .fix-title {
             color: #E9EDEF;
-            font-size: 15px;
-            outline: none;
-            transition: all 0.3s ease;
-            min-width: 120px;
-            width: 100%;
-        }
-        .input-group input:focus {
-            border-color: #25D366;
-            box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.1);
-            background: rgba(42, 57, 66, 0.8);
-        }
-        .input-group input::placeholder { color: #5A6A74; font-size: 14px; }
-        .input-group button {
-            padding: 12px 20px;
-            background: linear-gradient(135deg, #25D366, #1DA851);
-            border: none;
-            border-radius: 10px;
-            color: white;
-            font-size: 15px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            white-space: nowrap;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            box-shadow: 0 4px 16px rgba(37, 211, 102, 0.3);
-            min-width: 100px;
-            justify-content: center;
-        }
-        .input-group button:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 24px rgba(37, 211, 102, 0.4);
-            background: linear-gradient(135deg, #2BDE6E, #1DA851);
-        }
-        .input-group button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-        .input-group button .spinner {
-            display: none;
-            width: 18px;
-            height: 18px;
-            border: 2.5px solid rgba(255,255,255,0.2);
-            border-top-color: white;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-        .input-group button.loading .spinner { display: inline-block; }
-        .input-group button.loading .btn-text { display: none; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .status-message {
-            margin-top: 14px;
-            padding: 12px 16px;
-            border-radius: 10px;
-            font-size: 13px;
-            display: none;
-            animation: slideDown 0.3s ease;
-            word-wrap: break-word;
-        }
-        @keyframes slideDown {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .status-message.show { display: block; }
-        .status-message.success { background: rgba(11, 59, 30, 0.8); color: #25D366; border: 1px solid rgba(37, 211, 102, 0.2); }
-        .status-message.error { background: rgba(59, 30, 30, 0.8); color: #E74C3C; border: 1px solid rgba(231, 76, 60, 0.2); }
-        .status-message.info { background: rgba(30, 42, 59, 0.8); color: #60A5FA; border: 1px solid rgba(96, 165, 250, 0.2); }
-        .code-display {
-            margin-top: 16px;
-            padding: 16px;
-            background: rgba(11, 20, 26, 0.6);
-            border-radius: 12px;
-            text-align: center;
-            display: none;
-            border: 1px solid rgba(37, 211, 102, 0.1);
-            animation: slideDown 0.4s ease;
-        }
-        .code-display.active { display: block; }
-        .code-display .code-label {
-            color: #8696A0;
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 6px;
-        }
-        .code-display .code {
-            font-size: 28px;
-            font-weight: 700;
-            color: #25D366;
-            letter-spacing: 4px;
-            font-family: 'Courier New', monospace;
-            cursor: pointer;
-            user-select: all;
-            padding: 10px 16px;
-            border-radius: 8px;
-            transition: all 0.2s;
-            display: inline-block;
-            background: rgba(0,0,0,0.2);
-            word-break: break-all;
-            max-width: 100%;
-        }
-        .code-display .code:hover { background: rgba(37, 211, 102, 0.1); }
-        .code-display .copy-hint { color: #5A6A74; font-size: 11px; margin-top: 6px; }
-        .code-display .copy-hint i { margin-right: 4px; }
-        .code-display .expiry {
-            color: #8696A0;
-            font-size: 10px;
-            margin-top: 6px;
-        }
-        .connected-badge {
-            display: none;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            background: rgba(11, 59, 30, 0.8);
-            color: #25D366;
-            padding: 8px 16px;
-            border-radius: 30px;
             font-size: 13px;
             font-weight: 500;
-            margin-top: 14px;
-            border: 1px solid rgba(37, 211, 102, 0.2);
-            animation: slideDown 0.4s ease;
         }
-        .connected-badge i { font-size: 14px; }
+        
+        .fix-item .fix-content .fix-desc {
+            color: #8696A0;
+            font-size: 12px;
+        }
+        
+        .fix-item .fix-status {
+            color: #25D366;
+            font-size: 12px;
+            font-weight: 500;
+            animation: blink 1.2s ease-in-out infinite;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        
+        /* Footer */
         .footer {
             text-align: center;
-            margin-top: 20px;
+            margin-top: 16px;
             color: #5A6A74;
-            font-size: 11px;
+            font-size: 12px;
             letter-spacing: 0.3px;
         }
-        .footer a { color: #25D366; text-decoration: none; transition: color 0.2s; }
+        
+        .footer a {
+            color: #25D366;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        
         .footer a:hover { color: #34B7F1; }
         .footer .heart { color: #E74C3C; }
-        .device-id {
-            font-size: 9px;
-            color: #3B4A54;
-            text-align: center;
-            margin-top: 10px;
-            font-family: monospace;
-            letter-spacing: 0.5px;
-        }
         
         /* Mobile Responsive */
         @media (max-width: 480px) {
             body { padding: 10px; }
-            .container { 
-                padding: 20px 16px; 
+            .container {
+                padding: 24px 16px;
                 border-radius: 16px;
                 max-height: 98vh;
             }
-            .input-group { 
-                flex-direction: column; 
-                align-items: stretch;
-                gap: 8px;
+            .header .icon-container {
+                width: 64px;
+                height: 64px;
             }
-            .input-group .country-code { display: none; }
-            .input-group button { 
-                justify-content: center; 
-                padding: 12px;
-                width: 100%;
-                min-width: unset;
-            }
-            .input-group input {
-                width: 100%;
-                font-size: 16px; /* Prevents zoom on iOS */
-                padding: 14px;
-            }
-            .header .logo { 
-                width: 56px; 
-                height: 56px; 
-            }
-            .header .logo i { font-size: 26px; }
+            .header .icon-container i { font-size: 28px; }
             .header h1 { font-size: 20px; }
-            .step { 
-                padding: 10px 12px; 
-                gap: 10px;
-            }
-            .step-icon { width: 28px; height: 28px; }
-            .step-icon i { font-size: 12px; }
-            .step-content .title { font-size: 12px; }
-            .step-content .desc { font-size: 11px; }
-            .code-display .code { 
-                font-size: 24px; 
-                letter-spacing: 2px; 
-                padding: 8px 12px;
-            }
-            .status-message { 
-                font-size: 12px; 
-                padding: 10px 14px;
-            }
-            .header .bot-badge { font-size: 9px; padding: 3px 12px; }
-            .connected-badge { font-size: 12px; padding: 6px 14px; }
-            .footer { font-size: 10px; }
-            .device-id { font-size: 8px; }
-            .container { 
-                backdrop-filter: blur(20px);
-                -webkit-backdrop-filter: blur(20px);
-            }
+            .status-container .status-icon { font-size: 36px; }
+            .status-container .status-text { font-size: 16px; }
+            .fix-item { padding: 10px 12px; }
+            .fix-item .fix-icon { width: 30px; height: 30px; }
+            .fix-item .fix-icon i { font-size: 12px; }
+            .fix-item .fix-content .fix-title { font-size: 12px; }
+            .fix-item .fix-content .fix-desc { font-size: 11px; }
         }
         
         @media (max-width: 380px) {
             .container { padding: 16px 12px; }
             .header h1 { font-size: 18px; }
-            .code-display .code { font-size: 20px; letter-spacing: 1px; }
-            .step { padding: 8px 10px; }
         }
         
-        /* Fix for iOS Safari */
+        /* iOS Safari Fix */
         @supports (-webkit-touch-callout: none) {
-            .container {
-                max-height: 90vh;
-            }
+            .container { max-height: 90vh; }
         }
         
         ::-webkit-scrollbar { width: 4px; }
@@ -521,12 +517,15 @@ app.get('/', (req, res) => {
     </style>
 </head>
 <body>
+    <!-- Animated Background -->
     <div class="bg-animation">
         <div class="orb"></div>
         <div class="orb"></div>
         <div class="orb"></div>
         <div class="orb"></div>
     </div>
+    
+    <!-- Particles -->
     <div class="particles">
         <div class="particle"></div>
         <div class="particle"></div>
@@ -539,259 +538,95 @@ app.get('/', (req, res) => {
         <div class="particle"></div>
         <div class="particle"></div>
     </div>
+    
+    <!-- Main Container -->
     <div class="container">
+        <!-- Header -->
         <div class="header">
-            <div class="logo">
-                <i class="fas fa-robot"></i>
+            <div class="icon-container">
+                <i class="fas fa-wrench"></i>
             </div>
             <div class="bot-badge">
                 <i class="fas fa-circle" style="font-size: 6px;"></i>
                 <span>CypherNodeMD Bot</span>
                 <i class="fas fa-circle" style="font-size: 6px;"></i>
             </div>
-            <h1>Link a <span>Device</span></h1>
-            <p>Connect your phone to the bot</p>
+            <h1>Under <span>Maintenance</span></h1>
+            <p>Optimizing and fixing issues</p>
         </div>
-        <div class="steps-container">
-            <div class="step">
-                <div class="step-icon"><i class="fas fa-phone"></i></div>
-                <div class="step-content">
-                    <div class="title">Enter your phone number</div>
-                    <div class="desc">Use the number linked to your WhatsApp account</div>
-                </div>
+        
+        <!-- Status -->
+        <div class="status-container">
+            <i class="fas fa-cog status-icon"></i>
+            <div class="status-text">Fixing Bugs & Commands</div>
+            <div class="status-sub">Please wait while we update the bot</div>
+        </div>
+        
+        <!-- Progress -->
+        <div class="progress-wrapper">
+            <div class="progress-bar">
+                <div class="progress-fill"></div>
             </div>
-            <div class="step">
-                <div class="step-icon"><i class="fas fa-shield-alt"></i></div>
-                <div class="step-content">
-                    <div class="title">Get pairing code</div>
-                    <div class="desc">We'll generate a <span class="highlight">secure one-time code</span> for you</div>
-                </div>
-            </div>
-            <div class="step">
-                <div class="step-icon"><i class="fas fa-link"></i></div>
-                <div class="step-content">
-                    <div class="title">Link your device</div>
-                    <div class="desc">Open WhatsApp → Settings → <span class="highlight">Linked Devices</span> → Link a Device</div>
-                </div>
+            <div class="progress-text">
+                <span>Initializing</span>
+                <span>Optimizing</span>
+                <span>Complete</span>
             </div>
         </div>
-        <div class="divider"></div>
-        <div class="input-group">
-            <span class="country-code">+</span>
-            <input type="tel" id="phoneInput" placeholder="254712345678" autocomplete="tel" inputmode="numeric" pattern="[0-9]*">
-            <button id="startBtn" onclick="startSession()">
-                <span class="btn-text">Connect</span>
-                <span class="spinner"></span>
-            </button>
+        
+        <!-- Fix List -->
+        <div class="fix-list">
+            <div class="fix-item">
+                <div class="fix-icon"><i class="fas fa-bug"></i></div>
+                <div class="fix-content">
+                    <div class="fix-title">Bug Fixes</div>
+                    <div class="fix-desc">Resolving command errors</div>
+                </div>
+                <div class="fix-status">Fixing</div>
+            </div>
+            
+            <div class="fix-item">
+                <div class="fix-icon"><i class="fas fa-terminal"></i></div>
+                <div class="fix-content">
+                    <div class="fix-title">Command Optimization</div>
+                    <div class="fix-desc">Improving response time</div>
+                </div>
+                <div class="fix-status">Running</div>
+            </div>
+            
+            <div class="fix-item">
+                <div class="fix-icon"><i class="fas fa-plug"></i></div>
+                <div class="fix-content">
+                    <div class="fix-title">Connection Stability</div>
+                    <div class="fix-desc">Fixing reconnection issues</div>
+                </div>
+                <div class="fix-status">Active</div>
+            </div>
+            
+            <div class="fix-item">
+                <div class="fix-icon"><i class="fas fa-users"></i></div>
+                <div class="fix-content">
+                    <div class="fix-title">Group Management</div>
+                    <div class="fix-desc">Fixing add & promote commands</div>
+                </div>
+                <div class="fix-status">In Progress</div>
+            </div>
+            
+            <div class="fix-item">
+                <div class="fix-icon"><i class="fas fa-shield-alt"></i></div>
+                <div class="fix-content">
+                    <div class="fix-title">Security Updates</div>
+                    <div class="fix-desc">Applying latest patches</div>
+                </div>
+                <div class="fix-status">Applied</div>
+            </div>
         </div>
-        <div id="statusMessage" class="status-message"></div>
-        <div id="codeDisplay" class="code-display">
-            <div class="code-label"><i class="fas fa-key"></i> Pairing Code</div>
-            <div class="code" id="pairCode" onclick="copyCode()">------</div>
-            <div class="copy-hint"><i class="fas fa-copy"></i> Click code to copy</div>
-            <div class="expiry" id="expiryText">⏱ Code expires in 10 minutes</div>
-        </div>
-        <div id="connectedBadge" class="connected-badge">
-            <i class="fas fa-check-circle"></i>
-            <span>Connected successfully</span>
-        </div>
+        
+        <!-- Footer -->
         <div class="footer">
             <span>Powered with <span class="heart">♥</span> by <a href="#">CypherNodeMD</a></span>
         </div>
-        <div class="device-id">🔑 Device: ${sessionId.substring(0, 12)}...</div>
     </div>
-    <script>
-        const sessionId = '${sessionId}';
-        let pollInterval = null;
-        let expiryTimer = null;
-        
-        function setLoading(loading) {
-            const btn = document.getElementById('startBtn');
-            if (loading) {
-                btn.classList.add('loading');
-                btn.disabled = true;
-            } else {
-                btn.classList.remove('loading');
-                btn.disabled = false;
-            }
-        }
-        
-        function showStatus(message, type) {
-            const el = document.getElementById('statusMessage');
-            el.textContent = message;
-            el.className = 'status-message show ' + type;
-            if (type === 'error') {
-                setTimeout(() => {
-                    el.classList.remove('show');
-                }, 6000);
-            }
-        }
-        
-        function copyCode() {
-            const codeEl = document.getElementById('pairCode');
-            const code = codeEl.textContent;
-            if (code && code !== '------' && code !== 'Loading...' && code !== 'Expired') {
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(code).then(() => {
-                        showStatus('✅ Code copied to clipboard!', 'success');
-                    }).catch(() => {
-                        copyCodeFallback(codeEl);
-                    });
-                } else {
-                    copyCodeFallback(codeEl);
-                }
-            }
-        }
-        
-        function copyCodeFallback(codeEl) {
-            const range = document.createRange();
-            range.selectNode(codeEl);
-            window.getSelection().removeAllRanges();
-            window.getSelection().addRange(range);
-            try {
-                document.execCommand('copy');
-                showStatus('✅ Code copied!', 'success');
-            } catch (e) {
-                showStatus('❌ Failed to copy. Please select and copy manually.', 'error');
-            }
-            window.getSelection().removeAllRanges();
-        }
-        
-        function startExpiryTimer() {
-            let minutes = 10;
-            const expiryEl = document.getElementById('expiryText');
-            if (expiryTimer) clearInterval(expiryTimer);
-            expiryTimer = setInterval(() => {
-                minutes--;
-                if (minutes <= 0) {
-                    clearInterval(expiryTimer);
-                    expiryEl.textContent = '⏱ Code expired';
-                    document.getElementById('pairCode').textContent = 'Expired';
-                    document.getElementById('pairCode').style.color = '#E74C3C';
-                    showStatus('Code has expired. Please request a new one.', 'error');
-                } else {
-                    expiryEl.textContent = '⏱ Code expires in ' + minutes + ' minute' + (minutes > 1 ? 's' : '');
-                }
-            }, 60000);
-        }
-        
-        async function startSession() {
-            const phone = document.getElementById('phoneInput').value.trim();
-            if (!phone) {
-                showStatus('Please enter your phone number', 'error');
-                return;
-            }
-            
-            const cleanPhone = phone.replace(/[^0-9]/g, '');
-            if (cleanPhone.length < 7 || cleanPhone.length > 15) {
-                showStatus('Please enter a valid phone number (7-15 digits)', 'error');
-                return;
-            }
-            
-            setLoading(true);
-            showStatus('Starting session for ' + cleanPhone + '...', 'info');
-            
-            try {
-                const res = await fetch('/start-session', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        phoneNumber: cleanPhone,
-                        sessionId: sessionId 
-                    })
-                });
-                const data = await res.json();
-                
-                if (!data.success) {
-                    showStatus('Error: ' + (data.error || 'Failed to start session'), 'error');
-                    setLoading(false);
-                    return;
-                }
-                
-                showStatus('Waiting for pairing code...', 'info');
-                document.getElementById('codeDisplay').classList.add('active');
-                document.getElementById('pairCode').textContent = 'Loading...';
-                document.getElementById('pairCode').style.color = '#25D366';
-                
-                startExpiryTimer();
-                
-                if (pollInterval) clearInterval(pollInterval);
-                pollInterval = setInterval(pollStatus, 2000);
-                pollStatus();
-                
-            } catch (err) {
-                showStatus('Error: ' + err.message, 'error');
-                setLoading(false);
-            }
-        }
-        
-        async function pollStatus() {
-            try {
-                const res = await fetch('/session-status/' + sessionId);
-                if (!res.ok) throw new Error('Status check failed');
-                const data = await res.json();
-                
-                if (data.pairCode) {
-                    document.getElementById('pairCode').textContent = data.pairCode;
-                    document.getElementById('pairCode').style.color = '#25D366';
-                    showStatus('Code received! Follow the steps to link your device.', 'success');
-                    setLoading(false);
-                }
-                
-                if (data.ready) {
-                    document.getElementById('connectedBadge').style.display = 'flex';
-                    document.getElementById('pairCode').textContent = '✅ Connected';
-                    showStatus('Device linked successfully! You can close this page.', 'success');
-                    if (pollInterval) {
-                        clearInterval(pollInterval);
-                        pollInterval = null;
-                    }
-                    if (expiryTimer) {
-                        clearInterval(expiryTimer);
-                        expiryTimer = null;
-                    }
-                    setLoading(false);
-                }
-            } catch (e) {
-                console.warn('Poll error:', e);
-            }
-        }
-        
-        async function checkExisting() {
-            try {
-                const res = await fetch('/session-status/' + sessionId);
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.pairCode) {
-                        document.getElementById('codeDisplay').classList.add('active');
-                        document.getElementById('pairCode').textContent = data.pairCode;
-                        startExpiryTimer();
-                        if (pollInterval) clearInterval(pollInterval);
-                        pollInterval = setInterval(pollStatus, 2000);
-                    }
-                    if (data.ready) {
-                        document.getElementById('connectedBadge').style.display = 'flex';
-                        document.getElementById('pairCode').textContent = '✅ Connected';
-                        if (pollInterval) {
-                            clearInterval(pollInterval);
-                            pollInterval = null;
-                        }
-                        if (expiryTimer) {
-                            clearInterval(expiryTimer);
-                            expiryTimer = null;
-                        }
-                    }
-                }
-            } catch (e) {}
-        }
-        checkExisting();
-        
-        document.getElementById('phoneInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                startSession();
-            }
-        });
-    </script>
 </body>
 </html>`);
 });
