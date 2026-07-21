@@ -88,24 +88,29 @@ app.get('/', (req, res) => {
         reconnecting: false
     });
     
-    res.send(`<!DOCTYPE html>
+   res.send(`<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>CypherNodeMD Bot - Pairing</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            height: 100%;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             min-height: 100vh;
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start;
             padding: 20px;
             background: #0a0e17;
-            overflow: hidden;
+            overflow-y: auto;
             position: relative;
         }
         .bg-animation {
@@ -170,22 +175,26 @@ app.get('/', (req, res) => {
             border-radius: 24px;
             max-width: 480px;
             width: 100%;
-            padding: 40px 32px;
+            padding: 30px 24px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
             border: 1px solid rgba(255,255,255,0.05);
             transition: transform 0.3s ease;
+            margin: auto;
+            max-height: 95vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
         }
         .container:hover { transform: translateY(-2px); }
-        .header { text-align: center; margin-bottom: 32px; }
+        .header { text-align: center; margin-bottom: 24px; }
         .header .logo {
-            width: 72px;
-            height: 72px;
+            width: 64px;
+            height: 64px;
             background: linear-gradient(135deg, #25D366, #128C7E);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 16px;
+            margin: 0 auto 12px;
             box-shadow: 0 0 40px rgba(37, 211, 102, 0.3);
             animation: pulseGlow 2s ease-in-out infinite;
             position: relative;
@@ -205,7 +214,7 @@ app.get('/', (req, res) => {
             0%, 100% { box-shadow: 0 0 40px rgba(37, 211, 102, 0.3); }
             50% { box-shadow: 0 0 60px rgba(37, 211, 102, 0.5); }
         }
-        .header .logo i { font-size: 34px; color: white; }
+        .header .logo i { font-size: 30px; color: white; }
         .header .bot-badge {
             display: inline-flex;
             align-items: center;
@@ -214,22 +223,22 @@ app.get('/', (req, res) => {
             border: 1px solid rgba(37, 211, 102, 0.2);
             padding: 4px 14px;
             border-radius: 20px;
-            font-size: 11px;
+            font-size: 10px;
             color: #25D366;
             font-weight: 500;
             letter-spacing: 0.5px;
             text-transform: uppercase;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
-        .header .bot-badge i { font-size: 10px; }
-        .header h1 { color: #E9EDEF; font-size: 24px; font-weight: 700; letter-spacing: -0.3px; }
+        .header .bot-badge i { font-size: 8px; }
+        .header h1 { color: #E9EDEF; font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
         .header h1 span {
             background: linear-gradient(135deg, #25D366, #34B7F1);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
-        .header p { color: #8696A0; font-size: 14px; margin-top: 4px; }
+        .header p { color: #8696A0; font-size: 13px; margin-top: 4px; }
         .steps-container {
             background: rgba(11, 20, 26, 0.5);
             border-radius: 12px;
@@ -239,16 +248,16 @@ app.get('/', (req, res) => {
         .step {
             display: flex;
             align-items: flex-start;
-            gap: 16px;
-            padding: 14px 16px;
+            gap: 12px;
+            padding: 12px 14px;
             border-bottom: 1px solid rgba(42, 57, 66, 0.5);
             transition: background 0.2s;
         }
         .step:last-child { border-bottom: none; }
         .step:hover { background: rgba(255,255,255,0.02); }
         .step-icon {
-            width: 36px;
-            height: 36px;
+            width: 32px;
+            height: 32px;
             background: rgba(37, 211, 102, 0.1);
             border-radius: 50%;
             display: flex;
@@ -257,60 +266,65 @@ app.get('/', (req, res) => {
             flex-shrink: 0;
             border: 1px solid rgba(37, 211, 102, 0.1);
         }
-        .step-icon i { font-size: 15px; color: #25D366; }
+        .step-icon i { font-size: 13px; color: #25D366; }
         .step-content { flex: 1; }
-        .step-content .title { color: #E9EDEF; font-size: 14px; font-weight: 500; margin-bottom: 2px; }
-        .step-content .desc { color: #8696A0; font-size: 13px; line-height: 1.4; }
+        .step-content .title { color: #E9EDEF; font-size: 13px; font-weight: 500; margin-bottom: 2px; }
+        .step-content .desc { color: #8696A0; font-size: 12px; line-height: 1.4; }
         .step-content .highlight { color: #25D366; font-weight: 500; }
         .divider {
             border-top: 1px solid rgba(42, 57, 66, 0.5);
-            margin: 20px 0 24px;
+            margin: 16px 0 20px;
         }
         .input-group {
             margin-top: 4px;
             display: flex;
-            gap: 12px;
+            gap: 10px;
             align-items: center;
+            flex-wrap: wrap;
         }
         .input-group .country-code {
             color: #E9EDEF;
             font-size: 16px;
             font-weight: 500;
             padding: 10px 0;
-            min-width: 20px;
+            min-width: 18px;
         }
         .input-group input {
             flex: 1;
-            padding: 14px 18px;
+            padding: 12px 14px;
             background: rgba(42, 57, 66, 0.6);
             border: 1px solid rgba(59, 74, 84, 0.5);
-            border-radius: 12px;
+            border-radius: 10px;
             color: #E9EDEF;
-            font-size: 16px;
+            font-size: 15px;
             outline: none;
             transition: all 0.3s ease;
+            min-width: 120px;
+            width: 100%;
         }
         .input-group input:focus {
             border-color: #25D366;
             box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.1);
             background: rgba(42, 57, 66, 0.8);
         }
-        .input-group input::placeholder { color: #5A6A74; }
+        .input-group input::placeholder { color: #5A6A74; font-size: 14px; }
         .input-group button {
-            padding: 14px 28px;
+            padding: 12px 20px;
             background: linear-gradient(135deg, #25D366, #1DA851);
             border: none;
-            border-radius: 12px;
+            border-radius: 10px;
             color: white;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
             white-space: nowrap;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             box-shadow: 0 4px 16px rgba(37, 211, 102, 0.3);
+            min-width: 100px;
+            justify-content: center;
         }
         .input-group button:hover:not(:disabled) {
             transform: translateY(-2px);
@@ -324,8 +338,8 @@ app.get('/', (req, res) => {
         }
         .input-group button .spinner {
             display: none;
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
             border: 2.5px solid rgba(255,255,255,0.2);
             border-top-color: white;
             border-radius: 50%;
@@ -335,12 +349,13 @@ app.get('/', (req, res) => {
         .input-group button.loading .btn-text { display: none; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .status-message {
-            margin-top: 16px;
-            padding: 14px 18px;
-            border-radius: 12px;
-            font-size: 14px;
+            margin-top: 14px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 13px;
             display: none;
             animation: slideDown 0.3s ease;
+            word-wrap: break-word;
         }
         @keyframes slideDown {
             from { opacity: 0; transform: translateY(-10px); }
@@ -351,8 +366,8 @@ app.get('/', (req, res) => {
         .status-message.error { background: rgba(59, 30, 30, 0.8); color: #E74C3C; border: 1px solid rgba(231, 76, 60, 0.2); }
         .status-message.info { background: rgba(30, 42, 59, 0.8); color: #60A5FA; border: 1px solid rgba(96, 165, 250, 0.2); }
         .code-display {
-            margin-top: 20px;
-            padding: 20px;
+            margin-top: 16px;
+            padding: 16px;
             background: rgba(11, 20, 26, 0.6);
             border-radius: 12px;
             text-align: center;
@@ -363,31 +378,33 @@ app.get('/', (req, res) => {
         .code-display.active { display: block; }
         .code-display .code-label {
             color: #8696A0;
-            font-size: 12px;
+            font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 1px;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
         .code-display .code {
-            font-size: 36px;
+            font-size: 28px;
             font-weight: 700;
             color: #25D366;
             letter-spacing: 4px;
             font-family: 'Courier New', monospace;
             cursor: pointer;
             user-select: all;
-            padding: 12px 20px;
+            padding: 10px 16px;
             border-radius: 8px;
             transition: all 0.2s;
             display: inline-block;
             background: rgba(0,0,0,0.2);
+            word-break: break-all;
+            max-width: 100%;
         }
         .code-display .code:hover { background: rgba(37, 211, 102, 0.1); }
-        .code-display .copy-hint { color: #5A6A74; font-size: 12px; margin-top: 8px; }
+        .code-display .copy-hint { color: #5A6A74; font-size: 11px; margin-top: 6px; }
         .code-display .copy-hint i { margin-right: 4px; }
         .code-display .expiry {
             color: #8696A0;
-            font-size: 11px;
+            font-size: 10px;
             margin-top: 6px;
         }
         .connected-badge {
@@ -397,45 +414,107 @@ app.get('/', (req, res) => {
             gap: 8px;
             background: rgba(11, 59, 30, 0.8);
             color: #25D366;
-            padding: 10px 20px;
+            padding: 8px 16px;
             border-radius: 30px;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 500;
-            margin-top: 16px;
+            margin-top: 14px;
             border: 1px solid rgba(37, 211, 102, 0.2);
             animation: slideDown 0.4s ease;
         }
-        .connected-badge i { font-size: 16px; }
+        .connected-badge i { font-size: 14px; }
         .footer {
             text-align: center;
-            margin-top: 24px;
+            margin-top: 20px;
             color: #5A6A74;
-            font-size: 12px;
+            font-size: 11px;
             letter-spacing: 0.3px;
         }
         .footer a { color: #25D366; text-decoration: none; transition: color 0.2s; }
         .footer a:hover { color: #34B7F1; }
         .footer .heart { color: #E74C3C; }
         .device-id {
-            font-size: 10px;
+            font-size: 9px;
             color: #3B4A54;
             text-align: center;
-            margin-top: 12px;
+            margin-top: 10px;
             font-family: monospace;
             letter-spacing: 0.5px;
         }
+        
+        /* Mobile Responsive */
         @media (max-width: 480px) {
-            .container { padding: 24px 16px; border-radius: 16px; }
-            .input-group { flex-direction: column; align-items: stretch; }
+            body { padding: 10px; }
+            .container { 
+                padding: 20px 16px; 
+                border-radius: 16px;
+                max-height: 98vh;
+            }
+            .input-group { 
+                flex-direction: column; 
+                align-items: stretch;
+                gap: 8px;
+            }
             .input-group .country-code { display: none; }
-            .input-group button { justify-content: center; padding: 14px; }
-            .header .logo { width: 60px; height: 60px; }
-            .header .logo i { font-size: 28px; }
+            .input-group button { 
+                justify-content: center; 
+                padding: 12px;
+                width: 100%;
+                min-width: unset;
+            }
+            .input-group input {
+                width: 100%;
+                font-size: 16px; /* Prevents zoom on iOS */
+                padding: 14px;
+            }
+            .header .logo { 
+                width: 56px; 
+                height: 56px; 
+            }
+            .header .logo i { font-size: 26px; }
             .header h1 { font-size: 20px; }
-            .step { padding: 12px 12px; }
-            .code-display .code { font-size: 28px; letter-spacing: 2px; padding: 10px 16px; }
+            .step { 
+                padding: 10px 12px; 
+                gap: 10px;
+            }
+            .step-icon { width: 28px; height: 28px; }
+            .step-icon i { font-size: 12px; }
+            .step-content .title { font-size: 12px; }
+            .step-content .desc { font-size: 11px; }
+            .code-display .code { 
+                font-size: 24px; 
+                letter-spacing: 2px; 
+                padding: 8px 12px;
+            }
+            .status-message { 
+                font-size: 12px; 
+                padding: 10px 14px;
+            }
+            .header .bot-badge { font-size: 9px; padding: 3px 12px; }
+            .connected-badge { font-size: 12px; padding: 6px 14px; }
+            .footer { font-size: 10px; }
+            .device-id { font-size: 8px; }
+            .container { 
+                backdrop-filter: blur(20px);
+                -webkit-backdrop-filter: blur(20px);
+            }
         }
-        ::-webkit-scrollbar { width: 6px; }
+        
+        @media (max-width: 380px) {
+            .container { padding: 16px 12px; }
+            .header h1 { font-size: 18px; }
+            .code-display .code { font-size: 20px; letter-spacing: 1px; }
+            .step { padding: 8px 10px; }
+        }
+        
+        /* Fix for iOS Safari */
+        @supports (-webkit-touch-callout: none) {
+            .container {
+                max-height: 90vh;
+            }
+        }
+        
+        ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: rgba(31, 44, 51, 0.3); }
         ::-webkit-scrollbar-thumb { background: #25D366; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #1DA851; }
@@ -499,7 +578,7 @@ app.get('/', (req, res) => {
         <div class="divider"></div>
         <div class="input-group">
             <span class="country-code">+</span>
-            <input type="text" id="phoneInput" placeholder="Enter phone number (e.g. 254739006966)" autocomplete="tel">
+            <input type="tel" id="phoneInput" placeholder="Enter phone number" autocomplete="tel" inputmode="numeric" pattern="[0-9]*">
             <button id="startBtn" onclick="startSession()">
                 <span class="btn-text">Connect</span>
                 <span class="spinner"></span>
@@ -541,7 +620,6 @@ app.get('/', (req, res) => {
             const el = document.getElementById('statusMessage');
             el.textContent = message;
             el.className = 'status-message show ' + type;
-            // Only hide error messages - keep success messages visible
             if (type === 'error') {
                 setTimeout(() => {
                     el.classList.remove('show');
