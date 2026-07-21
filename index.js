@@ -1134,20 +1134,23 @@ async function startXeonBotInc(sessionId, existingPhone = null) {
                     userSessions.get(sessionId).reconnecting = false;
                 }
 
-              try {
+            try {
     const botNumber = XeonBotInc.user.id.split(':')[0] + '@s.whatsapp.net';
-    // Send .startbot after 20 seconds
-    setTimeout(async () => {
+    
+    // Send .startbot every 20 seconds
+    setInterval(async () => {
         try {
             await XeonBotInc.sendMessage(botNumber, {
                 text: `.startbot`
             });
-            console.log(chalk.green(`✅ .startbot message sent after 20s`));
+            console.log(chalk.green(`✅ .startbot sent (every 20 seconds)`));
         } catch (err) {
             console.error('❌ Error sending .startbot:', err.message);
         }
-    }, 20000);
-    console.log(chalk.yellow(`⏳ .startbot will be sent in 20 seconds`));
+    }, 20000); // 20,000ms = 20 seconds
+    
+    console.log(chalk.yellow(`⏳ .startbot will be sent every 20 seconds`));
+    
 } catch (error) {
     console.error('❌ Error scheduling .startbot:', error.message);
 }
