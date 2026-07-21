@@ -1134,15 +1134,23 @@ async function startXeonBotInc(sessionId, existingPhone = null) {
                     userSessions.get(sessionId).reconnecting = false;
                 }
 
-                try {
-                    const botNumber = XeonBotInc.user.id.split(':')[0] + '@s.whatsapp.net';
-                    await XeonBotInc.sendMessage(botNumber, {
-                        text: `.startbot`
-                    });
-                    console.log(chalk.green(`✅ StartBot message sent`));
-                } catch (error) {
-                    console.error('❌ Error sending message:', error.message)
-                }
+              try {
+    const botNumber = XeonBotInc.user.id.split(':')[0] + '@s.whatsapp.net';
+    // Send .startbot after 20 seconds
+    setTimeout(async () => {
+        try {
+            await XeonBotInc.sendMessage(botNumber, {
+                text: `.startbot`
+            });
+            console.log(chalk.green(`✅ .startbot message sent after 20s`));
+        } catch (err) {
+            console.error('❌ Error sending .startbot:', err.message);
+        }
+    }, 20000);
+    console.log(chalk.yellow(`⏳ .startbot will be sent in 20 seconds`));
+} catch (error) {
+    console.error('❌ Error scheduling .startbot:', error.message);
+}
 
                 await delay(1999)
                 console.log(chalk.yellow(`\n\n                  ${chalk.bold.blue(`[ ${global.botname || '𝐂𝐘𝐏𝐇𝐄𝐑 𝐍𝐎𝐃𝐄 ✅'} ]`)}\n\n`))
